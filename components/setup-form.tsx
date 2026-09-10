@@ -169,21 +169,20 @@ export function SetupForm({
         />
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-card/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto w-full max-w-3xl">
-          <Button
-            type="button"
-            className="h-12 w-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary-bright"
-            disabled={!canStart}
-            onClick={handleStart}
-          >
-            {canStart
-              ? mode === 'patrulla'
-                ? 'Comenzar a Anotar'
-                : 'Comenzar el Cruce'
-              : 'Ingresa el nombre de cada arquero'}
-          </Button>
-        </div>
+      {/* Botón al final del formulario con margen para no tapar el menú inferior */}
+      <div className="mt-6 mb-20 w-full">
+        <Button
+          type="button"
+          className="h-12 w-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary-bright"
+          disabled={!canStart}
+          onClick={handleStart}
+        >
+          {canStart
+            ? mode === 'patrulla'
+              ? 'Comenzar a Anotar'
+              : 'Comenzar el Cruce'
+            : 'Ingresa el nombre de cada arquero'}
+        </Button>
       </div>
     </div>
   )
