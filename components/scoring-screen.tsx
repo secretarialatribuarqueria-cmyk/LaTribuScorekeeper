@@ -290,7 +290,7 @@ export function ScoringScreen({
             </div>
           </div>
 
-          {/* Renderizado de Teclado o Diana */}
+          {/* Renderizado de Teclado o Diana (Soporta 3D, JJCC e Indoor/Outdoor) */}
           {activeTab === 'keypad' ? (
             <Keypad
               keys={config.keypad}
@@ -300,6 +300,7 @@ export function ScoringScreen({
           ) : (
             <div className="flex flex-col items-center rounded-xl border border-border bg-card p-4">
               <InteractiveTarget
+                disciplineId={tournament.disciplineId}
                 onScoreSelect={(score) => pressKey(String(score))}
               />
             </div>
