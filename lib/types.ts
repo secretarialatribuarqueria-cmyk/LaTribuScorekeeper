@@ -37,11 +37,11 @@ export interface Archer {
 }
 
 export interface BracketMatch {
-  id: string // Ej: 'Q1', 'Q2', 'S1', 'S2', 'BRONZE', 'GOLD'
+  id: string
   stage: 'quarter' | 'semi' | 'bronze' | 'gold'
   archer1Id?: string
   archer2Id?: string
-  archer1Score: number // Puntos de Set (Recurvo/Raso/Tradicional/Longbow) o Acumulado (Compuesto)
+  archer1Score: number
   archer2Score: number
   archer1ArrowScores: string[]
   archer2ArrowScores: string[]
