@@ -37,35 +37,35 @@ export function MatchScoreSheet({
     const sum1 = a1Set.reduce((acc, v) => acc + parseValue(v), 0)
     const sum2 = a2Set.reduce((acc, v) => acc + parseValue(v), 0)
 
-    let newScore1 = currentMatch.archer1Score
-    let newScore2 = currentMatch.archer2Score
+    let newSets1 = currentMatch.archer1Sets
+    let newSets2 = currentMatch.archer2Sets
+    let newCum1 = currentMatch.archer1Cumulative + sum1
+    let newCum2 = currentMatch.archer2Cumulative + sum2
 
-    if (scoringType === 'sets') {
-      if (sum1 > sum2) newScore1 += 2
-      else if (sum2 > sum1) newScore2 += 2
+    if (scoringType === 'set') {
+      if (sum1 > sum2) newSets1 += 2
+      else if (sum2 > sum1) newSets2 += 2
       else {
-        newScore1 += 1
-        newScore2 += 1
+        newSets1 += 1
+        newSets2 += 1
       }
-    } else {
-      newScore1 += sum1
-      newScore2 += sum2
     }
 
     let winnerId = currentMatch.winnerId
 
-    if (scoringType === 'sets' && (newScore1 >= 6 || newScore2 >= 6)) {
-      if (newScore1 > newScore2) winnerId = currentMatch.archer1Id
-      else if (newScore2 > newScore1) winnerId = currentMatch.archer2Id
+    if (scoringType === 'set' && (newSets1 >= 6 || newSets2 >= 6)) {
+      if (newSets1 > newSets2) winnerId = currentMatch.archer1Id
+      else if (newSets2 > newSets1) winnerId = currentMatch.archer2Id
     }
 
     const updated: BracketMatch = {
       ...currentMatch,
-      archer1Score: newScore1,
-      archer2Score: newScore2,
-      archer1ArrowScores: [...currentMatch.archer1ArrowScores, ...a1Set],
-      archer2ArrowScores: [...currentMatch.archer2ArrowScores, ...a2Set],
+      archer1Sets: newSets1,
+      archer2Sets: newSets2,
+      archer1Cumulative: newCum1,
+      archer2Cumulative: newCum2,
       winnerId,
+      isFinished: !!winnerId,
     }
 
     setCurrentMatch(updated)
@@ -74,43 +74,44 @@ export function MatchScoreSheet({
     onSaveMatch(updated)
   }
 
+  const displayScore1 = scoringType === 'set' ? currentMatch.archer1Sets : currentMatch.archer1Cumulative
+  const displayScore2 = scoringType === 'set' ? currentMatch.archer2Sets : currentMatch.archer2Cumulative
+
   return (
-    <div className="flex flex-col gap-4 p-2">
+    <div className="flex flex-col gap-4 p-2 text-white">
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground hover:text-foreground"
+        className="flex items-center gap-2 text-xs font-bold uppercase text-zinc-400 hover:text-white"
       >
-        <ArrowLeft className="size-4" /> Volver al Cuadro
+        <ArrowLeft className="w-4 h-4" /> Volver al Cuadro
       </button>
 
-      <div className="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 text-center shadow-md">
-        <div className={`flex flex-col gap-1 ${currentMatch.winnerId === archer1?.id ? 'text-primary' : ''}`}>
-          <span className="text-xs font-bold uppercase text-muted-foreground">{archer1?.name || 'Arquero 1'}</span>
-          <span className="font-display text-4xl font-black">{currentMatch.archer1Score}</span>
-          {scoringType === 'sets' && <span className="text-[10px] uppercase text-muted-foreground">Puntos de Set</span>}
+      <div className="grid grid-cols-2 gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-center shadow-md">
+        <div className={`flex flex-col gap-1 ${currentMatch.winnerId === archer1?.id ? 'text-emerald-400' : ''}`}>
+          <span className="text-xs font-bold uppercase text-zinc-400">{archer1?.name || 'Arquero 1'}</span>
+          <span className="font-display text-4xl font-black">{displayScore1}</span>
         </div>
 
-        <div className={`flex flex-col gap-1 ${currentMatch.winnerId === archer2?.id ? 'text-primary' : ''}`}>
-          <span className="text-xs font-bold uppercase text-muted-foreground">{archer2?.name || 'Arquero 2'}</span>
-          <span className="font-display text-4xl font-black">{currentMatch.archer2Score}</span>
-          {scoringType === 'sets' && <span className="text-[10px] uppercase text-muted-foreground">Puntos de Set</span>}
+        <div className={`flex flex-col gap-1 ${currentMatch.winnerId === archer2?.id ? 'text-emerald-400' : ''}`}>
+          <span className="text-xs font-bold uppercase text-zinc-400">{archer2?.name || 'Arquero 2'}</span>
+          <span className="font-display text-4xl font-black">{displayScore2}</span>
         </div>
       </div>
 
       {currentMatch.winnerId ? (
         <div className="flex flex-col items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-center">
-          <Award className="size-8 text-emerald-400" />
+          <Award className="w-8 h-8 text-emerald-400" />
           <h3 className="font-display text-base font-bold text-emerald-400">Match Finalizado</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-zinc-400">
             Ganador:{' '}
-            <strong className="text-foreground">
+            <strong className="text-white">
               {currentMatch.winnerId === archer1?.id ? archer1?.name : archer2?.name}
             </strong>
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ingreso de Tanda Actual</h4>
+        <div className="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Ingreso de Tanda Actual</h4>
 
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold">{archer1?.name}</span>
@@ -125,7 +126,7 @@ export function MatchScoreSheet({
                     newArr[idx] = e.target.value.toUpperCase()
                     setA1Set(newArr)
                   }}
-                  className="size-10 rounded-lg border border-border bg-muted text-center font-bold"
+                  className="w-10 h-10 rounded-lg border border-zinc-700 bg-zinc-950 text-center font-bold text-white"
                   placeholder="-"
                 />
               ))}
@@ -145,7 +146,7 @@ export function MatchScoreSheet({
                     newArr[idx] = e.target.value.toUpperCase()
                     setA2Set(newArr)
                   }}
-                  className="size-10 rounded-lg border border-border bg-muted text-center font-bold"
+                  className="w-10 h-10 rounded-lg border border-zinc-700 bg-zinc-950 text-center font-bold text-white"
                   placeholder="-"
                 />
               ))}
@@ -154,9 +155,9 @@ export function MatchScoreSheet({
 
           <button
             onClick={handleConfirmEnd}
-            className="flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-bold text-primary-foreground shadow-md transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 font-bold text-white shadow-md hover:bg-emerald-500 transition-all active:scale-95"
           >
-            <CheckCircle2 className="size-4" /> Confirmar Tanda
+            <CheckCircle2 className="w-4 h-4" /> Confirmar Tanda
           </button>
         </div>
       )}
