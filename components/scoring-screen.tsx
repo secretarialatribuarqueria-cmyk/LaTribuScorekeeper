@@ -2,8 +2,9 @@
 
 import { InteractiveTarget } from '@/components/interactive-target'
 import { ArcherStats } from '@/components/archer-stats'
+import { ExportModal } from '@/components/export-modal'
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Delete, Grid, Target as TargetIcon, BarChart2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Delete, Grid, Target as TargetIcon, BarChart2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Keypad } from '@/components/keypad'
 import { DISCIPLINES } from '@/lib/disciplines'
@@ -31,8 +32,11 @@ export function ScoringScreen({
   const [currentEnd, setCurrentEnd] = useState(0)
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
   
-  // Estado para alternar entre Teclado, Diana e Estadísticas
+  // Estado para alternar entre Teclado, Diana y Estadísticas
   const [activeTab, setActiveTab] = useState<'keypad' | 'target' | 'stats'>('keypad')
+  
+  // Estado para abrir/cerrar el modal de exportación
+  const [isExportOpen, setIsExportOpen] = useState(false)
 
   const end = archer.ends[currentEnd]
   const stats = useMemo(() => computeStats(config, archer), [config, archer])
@@ -122,40 +126,51 @@ export function ScoringScreen({
         })}
       </div>
 
-      {/* Menú de Modos / Vistas */}
-      <div className="mb-3 flex justify-center gap-1.5 rounded-xl border border-border bg-card p-1.5">
+      {/* Menú de Modos / Vistas + Botón Exportar */}
+      <div className="mb-3 flex items-center gap-1.5 rounded-xl border border-border bg-card p-1.5">
+        <div className="flex flex-1 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setActiveTab('keypad')}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
+              activeTab === 'keypad'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <Grid className="size-4" /> Teclado
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('target')}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
+              activeTab === 'target'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <TargetIcon className="size-4" /> Diana
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('stats')}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
+              activeTab === 'stats'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <BarChart2 className="size-4" /> Stats
+          </button>
+        </div>
+
+        {/* Botón de Exportación */}
         <button
           type="button"
-          onClick={() => setActiveTab('keypad')}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
-            activeTab === 'keypad'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
+          onClick={() => setIsExportOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-500 transition-colors hover:bg-amber-500/20"
         >
-          <Grid className="size-4" /> Teclado
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('target')}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
-            activeTab === 'target'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          <TargetIcon className="size-4" /> Diana
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('stats')}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
-            activeTab === 'stats'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-muted'
-          }`}
-        >
-          <BarChart2 className="size-4" /> Stats
+          <Download className="size-4" /> Exportar
         </button>
       </div>
 
@@ -291,6 +306,14 @@ export function ScoringScreen({
           )}
         </>
       )}
+
+      {/* Modal de Exportación (PDF / PNG) */}
+      <ExportModal
+        archer={archer}
+        disciplineId={tournament.disciplineId}
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+      />
     </div>
   )
 }
