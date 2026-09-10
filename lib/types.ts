@@ -3,8 +3,7 @@ export type BowType =
   | 'Compuesto' 
   | 'Raso' 
   | 'Tradicional' 
-  | 'Longbow' 
-  | 'Bailestino'
+  | 'Longbow'
 
 export const BOW_TYPES: BowType[] = [
   'Recurvo',
@@ -12,10 +11,9 @@ export const BOW_TYPES: BowType[] = [
   'Raso',
   'Tradicional',
   'Longbow',
-  'Bailestino',
 ]
 
-// Lista oficial de categorías actualizada
+// Lista oficial de categorías
 export const CATEGORIES = [
   'Escuela',
   'Juvenil',
