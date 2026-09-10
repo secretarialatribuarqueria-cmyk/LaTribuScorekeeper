@@ -10,6 +10,17 @@ export type ScoringType = 'sets' | 'cumulative'
 // Tipos de arco oficiales
 export type BowType = 'Longbow' | 'Tradicional' | 'Raso' | 'Recurvo' | 'Compuesto'
 
+// Categorías del club
+export const CATEGORIES = [
+  'Escuela',
+  'Cazador',
+  'Senior',
+  'Veterano',
+  'Juvenil',
+] as const
+
+export type Category = (typeof CATEGORIES)[number]
+
 export interface ArrowKeyConfig {
   label: string
   value: number
