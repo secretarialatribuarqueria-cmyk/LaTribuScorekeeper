@@ -1,7 +1,8 @@
 'use client'
 
+import { InteractiveTarget } from '@/components/interactive-target'
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Delete } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Delete, Grid, Target as TargetIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Keypad } from '@/components/keypad'
 import { DISCIPLINES } from '@/lib/disciplines'
@@ -28,6 +29,9 @@ export function ScoringScreen({
   const archer = tournament.archers[activeArcher]
   const [currentEnd, setCurrentEnd] = useState(0)
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  
+  // Estado para alternar entre el Teclado y la Diana interactiva
+  const [inputMode, setInputMode] = useState<'keypad' | 'target'>('keypad')
 
   const end = archer.ends[currentEnd]
   const stats = useMemo(() => computeStats(config, archer), [config, archer])
@@ -49,12 +53,12 @@ export function ScoringScreen({
     if (targetSlot == null) return
 
     // 1. Guardar el puntaje de la flecha actual
-    setArrow(archer.id, currentEnd, targetSlot, label)
+    setArrow(archer.id, currentEnd, targetSlot, String(label))
     setSelectedSlot(null)
 
     // 2. Verificar si con esta flecha se completa la tanda para el arquero activo
     const updatedEnd = [...end]
-    updatedEnd[targetSlot] = label
+    updatedEnd[targetSlot] = String(label)
     const isEndComplete = updatedEnd.every((val) => val != null)
 
     // 3. Avance automático si se completó la tanda y no se estaba editando una flecha específica
@@ -90,7 +94,7 @@ export function ScoringScreen({
   const currentEndTotal = endTotal(config, end)
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-3">
+    <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-3">
       {/* Archer tabs with target letters (A, B, C, D) */}
       <div className="mb-3 grid grid-cols-4 gap-1.5">
         {tournament.archers.map((a, i) => {
@@ -202,7 +206,9 @@ export function ScoringScreen({
         <div className="flex flex-wrap items-center gap-2">
           {recorded.length === 0 && (
             <span className="text-sm text-muted-foreground">
-              Toca un valor abajo para registrar la primera flecha.
+              {inputMode === 'keypad'
+                ? 'Toca un valor abajo para registrar la primera flecha.'
+                : 'Toca sobre la diana para marcar la ubicación de la flecha.'}
             </span>
           )}
           {recorded.map(({ label, slot }) => {
@@ -232,12 +238,47 @@ export function ScoringScreen({
         </div>
       </div>
 
-      {/* Keypad */}
-      <Keypad
-        keys={config.keypad}
-        onPress={pressKey}
-        disabled={targetSlot == null}
-      />
+      {/* Selector de modo de ingreso: Teclado vs Diana */}
+      <div className="mb-3 flex justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => setInputMode('keypad')}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+            inputMode === 'keypad'
+              ? 'border-primary-bright bg-primary text-primary-foreground'
+              : 'border-border bg-card text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          <Grid className="size-4" /> Teclado
+        </button>
+        <button
+          type="button"
+          onClick={() => setInputMode('target')}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+            inputMode === 'target'
+              ? 'border-primary-bright bg-primary text-primary-foreground'
+              : 'border-border bg-card text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          <TargetIcon className="size-4" /> Diana Interactiva
+        </button>
+      </div>
+
+      {/* Panel dinámico: Teclado o Diana */}
+      {inputMode === 'keypad' ? (
+        <Keypad
+          keys={config.keypad}
+          onPress={pressKey}
+          disabled={targetSlot == null}
+        />
+      ) : (
+        <div className="flex flex-col items-center rounded-xl border border-border bg-card p-4">
+          <InteractiveTarget
+            onScoreSelect={(score) => pressKey(String(score))}
+          />
+        </div>
+      )}
+
       {targetSlot == null && (
         <p className="mt-2 text-center text-xs text-muted-foreground">
           {config.endLabel} completa. Toca una flecha para editarla o avanza a la
