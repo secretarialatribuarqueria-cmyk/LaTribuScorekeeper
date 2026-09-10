@@ -7,7 +7,7 @@ export type DisciplineId =
 
 export type ScoringType = 'sets' | 'cumulative'
 
-// Tipos de arco oficiales del club
+// Tipos de arco oficiales
 export type BowType = 'Longbow' | 'Tradicional' | 'Raso' | 'Recurvo' | 'Compuesto'
 
 export interface ArrowKeyConfig {
