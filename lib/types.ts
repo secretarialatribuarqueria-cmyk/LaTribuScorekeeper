@@ -1,49 +1,56 @@
-export type DisciplineId =
-  | 'indoor_18m'
-  | 'outdoor_70m'
-  | 'field_24'
-  | '3d_standard'
-  | 'match_play_sets'
+export type BowType = 
+  | 'Recurvo' 
+  | 'Compuesto' 
+  | 'Raso' 
+  | 'Tradicional' 
+  | 'Longbow' 
+  | 'Bailestino'
 
-export type ScoringType = 'sets' | 'cumulative'
-
-// Constante oficial con los 5 tipos de arco
-export const BOW_TYPES = [
-  'Longbow',
-  'Tradicional',
-  'Raso',
+export const BOW_TYPES: BowType[] = [
   'Recurvo',
   'Compuesto',
-] as const
+  'Raso',
+  'Tradicional',
+  'Longbow',
+  'Bailestino',
+]
 
-export type BowType = (typeof BOW_TYPES)[number]
-
-// Categorías del club
+// Lista oficial de categorías actualizada
 export const CATEGORIES = [
   'Escuela',
-  'Cazador',
-  'Senior',
-  'Veterano',
   'Juvenil',
+  'U12',
+  'U15',
+  'U18',
+  'U21',
+  'Senior',
+  'Master',
 ] as const
 
 export type Category = (typeof CATEGORIES)[number]
 
-export interface ArrowKeyConfig {
-  label: string
-  value: number
-  bg: string
-  fg: string
-}
+export type ScoringType = 'set' | 'cumulative'
+
+export type DisciplineId = 'indoor_18m' | 'outdoor_70m' | 'field_24' | '3d_24'
 
 export interface Discipline {
   id: DisciplineId
   name: string
-  endLabel: string
   ends: number
   arrowsPerEnd: number
-  keypad: ArrowKeyConfig[]
   scoringType: ScoringType
+  targetType: 'standard' | 'field' | '3d'
+}
+
+export interface ArrowScore {
+  value: number // 0-10 (11 para X)
+  display: string // 'X', '10', '9', ..., 'M'
+}
+
+export interface EndScore {
+  endNumber: number
+  arrows: ArrowScore[]
+  total: number
 }
 
 export interface Archer {
@@ -51,31 +58,27 @@ export interface Archer {
   name: string
   category: string
   bowType: BowType
-  targetNumber?: string
-  ends: string[][]
+  targetNumber?: number
+  scores: EndScore[]
 }
 
 export interface BracketMatch {
-  id: string
-  stage: 'quarter' | 'semi' | 'bronze' | 'gold'
-  archer1Id?: string
-  archer2Id?: string
-  archer1Score: number
-  archer2Score: number
-  archer1ArrowScores: string[]
-  archer2ArrowScores: string[]
-  winnerId?: string
-  isShootOff?: boolean
-  shootOffArrow1?: number
-  shootOffArrow2?: number
-}
-
-export interface Tournament {
-  id: string
-  name: string
-  date: string
-  disciplineId: DisciplineId
-  stage: 'qualification' | 'brackets' | 'completed'
-  archers: Archer[]
-  brackets: BracketMatch[]
+  id: string // e.g. 'QF1', 'SF1', 'GOLD'
+  round: 'QF' | 'SF' | 'BRONZE' | 'GOLD'
+  archer1Id: string | null
+  archer2Id: string | null
+  archer1Sets: number
+  archer2Sets: number
+  archer1Cumulative: number
+  archer2Cumulative: number
+  winnerId: string | null
+  ends: {
+    a1Arrows: ArrowScore[]
+    a2Arrows: ArrowScore[]
+    a1EndTotal: number
+    a2EndTotal: number
+    a1Points: number
+    a2Points: number
+  }[]
+  isFinished: boolean
 }
