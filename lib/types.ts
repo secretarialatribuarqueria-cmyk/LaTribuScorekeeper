@@ -7,8 +7,16 @@ export type DisciplineId =
 
 export type ScoringType = 'sets' | 'cumulative'
 
-// Tipos de arco oficiales
-export type BowType = 'Longbow' | 'Tradicional' | 'Raso' | 'Recurvo' | 'Compuesto'
+// Constante oficial con los 5 tipos de arco
+export const BOW_TYPES = [
+  'Longbow',
+  'Tradicional',
+  'Raso',
+  'Recurvo',
+  'Compuesto',
+] as const
+
+export type BowType = (typeof BOW_TYPES)[number]
 
 // Categorías del club
 export const CATEGORIES = [
