@@ -1,109 +1,62 @@
-export type BowType =
-  | 'Longbow'
-  | 'Tradicional'
-  | 'Barebow/Raso'
-  | 'Compuesto'
-  | 'Recurvo Olímpico'
+export type DisciplineId =
+  | 'indoor_18m'
+  | 'outdoor_70m'
+  | 'field_24'
+  | '3d_standard'
+  | 'match_play_sets'
 
-export const BOW_TYPES: BowType[] = [
-  'Longbow',
-  'Tradicional',
-  'Barebow/Raso',
-  'Compuesto',
-  'Recurvo Olímpico',
-]
+export type ScoringType = 'sets' | 'cumulative'
 
-export const CATEGORIES: string[] = [
-  'Escuela',
-  'Junior',
-  'U12',
-  'U15',
-  'U18',
-  'U21',
-  'Senior',
-  'Master',
-]
+// Tipos de arco oficiales del club
+export type BowType = 'Longbow' | 'Tradicional' | 'Raso' | 'Recurvo' | 'Compuesto'
 
-export type DisciplineId = 'indoor' | 'outdoor' | 'field' | '3d'
-
-/** A single key on the numeric keypad. */
-export interface KeypadKey {
-  /** Text shown to the archer, e.g. "X", "10", "M". */
+export interface ArrowKeyConfig {
   label: string
-  /** Point value used for totals. */
   value: number
-  /** Background color (hex) for the key. */
   bg: string
-  /** Foreground/text color (hex) for the key. */
   fg: string
 }
 
-export interface DisciplineConfig {
+export interface Discipline {
   id: DisciplineId
   name: string
-  /** Short label for the group being shot, e.g. "Tanda" or "Diana". */
   endLabel: string
-  /** Number of ends (tandas) or targets (dianas). */
   ends: number
-  /** Maximum arrows recorded per end. */
   arrowsPerEnd: number
-  /** Whether every arrow slot must be filled (false for 3D 1-2 arrows). */
-  fixedArrows: boolean
-  keypad: KeypadKey[]
+  keypad: ArrowKeyConfig[]
+  scoringType: ScoringType
 }
-
-/** An arrow value is the keypad label, or null when not yet shot. */
-export type ArrowValue = string | null
 
 export interface Archer {
   id: string
   name: string
   category: string
-  targetLetter?: string
   bowType: BowType
-  /** ends[endIndex][arrowIndex] */
-  ends: ArrowValue[][]
+  targetNumber?: string
+  ends: string[][]
 }
 
-/** Multi-archer patrulla / training session. */
+export interface BracketMatch {
+  id: string // Ej: 'Q1', 'Q2', 'S1', 'S2', 'BRONZE', 'GOLD'
+  stage: 'quarter' | 'semi' | 'bronze' | 'gold'
+  archer1Id?: string
+  archer2Id?: string
+  archer1Score: number // Puntos de Set (Recurvo/Raso/Tradicional/Longbow) o Acumulado (Compuesto)
+  archer2Score: number
+  archer1ArrowScores: string[]
+  archer2ArrowScores: string[]
+  winnerId?: string
+  isShootOff?: boolean
+  shootOffArrow1?: number
+  shootOffArrow2?: number
+}
+
 export interface Tournament {
-  kind: 'patrulla'
-  disciplineId: DisciplineId
-  archers: Archer[]
-  createdAt: number
-}
-
-// ---------------------------------------------------------------------------
-// Match Play (Cruces Eliminatorios / Finales — 1 vs 1)
-// ---------------------------------------------------------------------------
-
-export type MatchFormat = 'sets' | 'cumulative'
-
-export interface MatchArcher {
   id: string
   name: string
-  category: string
-  bowType: BowType
-}
-
-/** ends[endIndex] = [arrowsArcherA, arrowsArcherB] */
-export type MatchEnd = [ArrowValue[], ArrowValue[]]
-
-export interface Match {
-  kind: 'match'
+  date: string
   disciplineId: DisciplineId
-  format: MatchFormat
-  /** Label for each grouping, e.g. "Set" or "Diana". */
-  endLabel: string
-  numEnds: number
-  arrowsPerEnd: number
-  fixedArrows: boolean
-  archers: [MatchArcher, MatchArcher]
-  ends: MatchEnd[]
-  /** One tie-breaker arrow per archer, or null if not shot yet. */
-  shootOff: [ArrowValue, ArrowValue] | null
-  createdAt: number
+  stage: 'qualification' | 'brackets' | 'completed'
+  archers: Archer[]
+  brackets: BracketMatch[]
 }
-
-/** The persisted app session is either a patrulla or a match. */
-export type Session = Tournament | Match
