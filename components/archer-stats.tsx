@@ -14,16 +14,16 @@ interface ArcherStatsProps {
 export function ArcherStats({ archer, disciplineId }: ArcherStatsProps) {
   const config = DISCIPLINES[disciplineId]
 
+  const is3D = disciplineId.includes('3d')
+  const isField = disciplineId.includes('field') || disciplineId.includes('jjcc')
+
   const stats = useMemo(() => {
     let totalScore = 0
     let totalArrows = 0
-    let countX = 0
-    let count10 = 0
-    let countGold = 0 // 10s + 9s (o X)
+    let countTopValues = 0 // 11s/10s en 3D, 6s en JJCC, Xs/10s en Target
+    let countHighZone = 0 // Zona de valor alto relativa a la disciplina
     let countMiss = 0
     const scoreDistribution: Record<string, number> = {}
-
-    // Puntuaciones por tanda para ver la tendencia/consistencia
     const endTotals: number[] = []
 
     archer.ends.forEach((end) => {
@@ -35,7 +35,6 @@ export function ArcherStats({ archer, disciplineId }: ArcherStatsProps) {
         totalArrows++
         arrowsInEnd++
 
-        // Conteo individual por etiqueta (X, 10, 9, M, etc.)
         scoreDistribution[label] = (scoreDistribution[label] || 0) + 1
 
         const key = arrowKey(config, label)
@@ -43,9 +42,18 @@ export function ArcherStats({ archer, disciplineId }: ArcherStatsProps) {
         totalScore += val
         currentEndTotal += val
 
-        if (label === 'X') countX++
-        if (label === '10' || label === 'X') count10++
-        if (val >= 9) countGold++
+        // Adaptar conteo según reglamento de la disciplina
+        if (is3D) {
+          if (label === '11' || label === '10') countTopValues++
+          if (val >= 8) countHighZone++
+        } else if (isField) {
+          if (label === '6' || label === '+') countTopValues++
+          if (val >= 5) countHighZone++
+        } else {
+          if (label === 'X' || label === '10') countTopValues++
+          if (val >= 9) countHighZone++
+        }
+
         if (val === 0 || label === 'M') countMiss++
       })
 
@@ -57,13 +65,11 @@ export function ArcherStats({ archer, disciplineId }: ArcherStatsProps) {
     const averagePerArrow = totalArrows > 0 ? totalScore / totalArrows : 0
     const averagePerEnd = endTotals.length > 0 ? totalScore / endTotals.length : 0
 
-    // Cálculo de Consistencia (Desviación Estándar de las tandas)
     let stdDev = 0
     if (endTotals.length > 1) {
       const variance =
-        endTotals.reduce((acc, score) => acc + Math.pow(score - averagePerEnd, 2), 0) /
-        endTotals.length
-      stdDev = Math.sqrt(variance)
+        endTotals.reduce((acc, score) => acc - averagePerEnd, 2) / endTotals.length
+      stdDev = Math.sqrt(Math.abs(variance))
     }
 
     return {
@@ -71,19 +77,16 @@ export function ArcherStats({ archer, disciplineId }: ArcherStatsProps) {
       totalArrows,
       averagePerArrow,
       averagePerEnd,
-      countX,
-      count10,
-      goldPercentage: totalArrows > 0 ? ((countGold / totalArrows) * 100).toFixed(1) : '0',
-      missPercentage: totalArrows > 0 ? ((countMiss / totalArrows) * 100).toFixed(1) : '0',
+      countTopValues,
+      highZonePercentage: totalArrows > 0 ? ((countHighZone / totalArrows) * 100).toFixed(1) : '0',
       scoreDistribution,
       endTotals,
-      consistencyScore: stdDev === 0 ? 'N/A' : (100 - stdDev * 5).toFixed(0), // Score hipotético de consistencia
+      consistencyScore: stdDev === 0 ? 'N/A' : Math.max(0, Math.min(100, Math.round(100 - stdDev * 4))),
     }
-  }, [archer, config])
+  }, [archer, config, is3D, isField])
 
   return (
     <div className="flex flex-col gap-4 py-2">
-      {/* Encabezado del Arquero */}
       <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -101,7 +104,6 @@ export function ArcherStats({ archer, disciplineId }: ArcherStatsProps) {
         </div>
       </div>
 
-      {/* Tarjetas de Métricas Clave */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <MetricCard
           icon={<TrendingUp className="size-4 text-emerald-400" />}
@@ -110,22 +112,21 @@ export function ArcherStats({ archer, disciplineId }: ArcherStatsProps) {
         />
         <MetricCard
           icon={<Award className="size-4 text-amber-400" />}
-          label="Total Xs / 10s"
-          value={`${stats.countX} / ${stats.count10}`}
+          label={is3D ? "Total 11s/10s" : isField ? "Total 6s/+" : "Total 10s/Xs"}
+          value={`${stats.countTopValues}`}
         />
         <MetricCard
           icon={<Target className="size-4 text-yellow-400" />}
-          label="% En la Zona de Oro"
-          value={`${stats.goldPercentage}%`}
+          label={is3D ? "% Vital (8+)" : isField ? "% Centro (5+)" : "% Oro (9+)"}
+          value={`${stats.highZonePercentage}%`}
         />
         <MetricCard
           icon={<Activity className="size-4 text-sky-400" />}
-          label="Índice Consistencia"
+          label="Consistencia"
           value={stats.consistencyScore !== 'N/A' ? `${stats.consistencyScore}/100` : '-'}
         />
       </div>
 
-      {/* Distribución de Flechas */}
       <div className="rounded-xl border border-border bg-card p-4">
         <h4 className="mb-3 flex items-center gap-2 font-display text-xs font-bold uppercase tracking-wider text-muted-foreground">
           <BarChart2 className="size-4 text-primary-bright" /> Distribución de Impactos
@@ -152,44 +153,11 @@ export function ArcherStats({ archer, disciplineId }: ArcherStatsProps) {
             })}
         </div>
       </div>
-
-      {/* Rendimiento por Tanda */}
-      {stats.endTotals.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h4 className="mb-3 font-display text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Puntaje por Tanda
-          </h4>
-          <div className="flex items-end gap-1.5 h-24 pt-2">
-            {stats.endTotals.map((score, i) => {
-              const maxPossible = config.arrowsPerEnd * 10
-              const heightPct = Math.max(15, (score / maxPossible) * 100)
-              return (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1 h-full justify-end">
-                  <span className="text-[10px] font-bold">{score}</span>
-                  <div
-                    className="w-full rounded-t-md bg-primary transition-all hover:bg-primary-bright"
-                    style={{ height: `${heightPct}%` }}
-                  />
-                  <span className="text-[9px] text-muted-foreground">T{i + 1}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
-function MetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-}) {
+function MetricCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
       <div className="flex items-center gap-1.5 text-muted-foreground">
