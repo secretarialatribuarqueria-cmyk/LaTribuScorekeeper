@@ -1,107 +1,85 @@
 'use client'
 
-import { useState } from 'react'
-
-interface Point {
-  x: number
-  y: number
-  score: number | string
-}
+import React from 'react'
 
 interface InteractiveTargetProps {
-  onScoreSelect?: (score: number | string, x: number, y: number) => void
-  shots?: Point[]
+  onScoreSelect: (score: string | number) => void
+  disciplineId?: string
 }
 
-export function InteractiveTarget({ onScoreSelect, shots = [] }: InteractiveTargetProps) {
-  const [currentShots, setCurrentShots] = useState<Point[]>(shots)
+export function InteractiveTarget({ onScoreSelect, disciplineId = 'indoor_18m' }: InteractiveTargetProps) {
+  // Ajuste visual y de puntuación según la disciplina
+  const is3D = disciplineId.includes('3d')
+  const isField = disciplineId.includes('field') || disciplineId.includes('jjcc')
 
-  // Manejar el toque/clic en la diana
-  const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left - rect.width / 2
-    const y = e.clientY - rect.top - rect.height / 2
-    const radius = Math.sqrt(x * x + y * y)
-    
-    // Normalizar radio a escala 0 - 100
-    const normRadius = (radius / (rect.width / 2)) * 100
-
-    // Calcular puntaje según la distancia al centro
-    let score: number | string = 0
-    if (normRadius <= 5) score = 'X'
-    else if (normRadius <= 10) score = 10
-    else if (normRadius <= 20) score = 9
-    else if (normRadius <= 30) score = 8
-    else if (normRadius <= 40) score = 7
-    else if (normRadius <= 50) score = 6
-    else if (normRadius <= 60) score = 5
-    else if (normRadius <= 70) score = 4
-    else if (normRadius <= 80) score = 3
-    else if (normRadius <= 90) score = 2
-    else if (normRadius <= 100) score = 1
-    else score = 'M' // Miss / Cero
-
-    const newPoint = { x, y, score }
-    setCurrentShots((prev) => [...prev, newPoint])
-    if (onScoreSelect) onScoreSelect(score, x, y)
+  if (is3D) {
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Silueta 3D (Zonas de Impacto)
+        </span>
+        <svg viewBox="0 0 300 300" className="size-64 cursor-pointer select-none drop-shadow-md">
+          {/* Silueta / Zona Cuerpo (5 Pts) */}
+          <circle cx="150" cy="150" r="130" fill="#78350f" stroke="#451a03" strokeWidth="4" onClick={() => onScoreSelect('5')} />
+          {/* Zona Vital (8 Pts) */}
+          <circle cx="150" cy="150" r="80" fill="#b45309" stroke="#78350f" strokeWidth="3" onClick={() => onScoreSelect('8')} />
+          {/* Zona 10 Pts */}
+          <circle cx="150" cy="150" r="45" fill="#d97706" stroke="#b45309" strokeWidth="2" onClick={() => onScoreSelect('10')} />
+          {/* Centro 11 / 12 Pts */}
+          <circle cx="150" cy="150" r="20" fill="#fef08a" stroke="#d97706" strokeWidth="2" onClick={() => onScoreSelect('11')} />
+          <text x="150" y="154" textAnchor="middle" fill="#451a03" fontSize="12" fontWeight="bold" pointerEvents="none">11</text>
+        </svg>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => onScoreSelect('M')} className="px-3 py-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-lg">
+            M (Cero)
+          </button>
+        </div>
+      </div>
+    )
   }
 
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative size-72 sm:size-80">
-        <svg
-          viewBox="-100 -100 200 200"
-          className="size-full cursor-pointer touch-none rounded-full shadow-lg"
-          onClick={handleClick}
-        >
-          {/* Anillos de la Diana (Indoor/Outdoor FITA) */}
-          <circle cx="0" cy="0" r="100" fill="#f8fafc" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="0" cy="0" r="90" fill="#f8fafc" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="0" cy="0" r="80" fill="#0f172a" stroke="#cbd5e1" strokeWidth="1" />
-          <circle cx="0" cy="0" r="70" fill="#0f172a" stroke="#cbd5e1" strokeWidth="1" />
-          <circle cx="0" cy="0" r="60" fill="#38bdf8" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="0" cy="0" r="50" fill="#38bdf8" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="0" cy="0" r="40" fill="#ef4444" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="0" cy="0" r="30" fill="#ef4444" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="0" cy="0" r="20" fill="#facc15" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="0" cy="0" r="10" fill="#facc15" stroke="#1e293b" strokeWidth="1" />
-          {/* Anillo X */}
-          <circle cx="0" cy="0" r="5" fill="none" stroke="#1e293b" strokeWidth="0.8" strokeDasharray="1 1" />
-          <path d="M -2 0 L 2 0 M 0 -2 L 0 2" stroke="#1e293b" strokeWidth="0.8" />
-
-          {/* Marcadores de Flechas Impactadas */}
-          {currentShots.map((shot, idx) => (
-            <g key={idx}>
-              <circle
-                cx={shot.x}
-                cy={shot.y}
-                r="3.5"
-                fill="#22c55e"
-                stroke="#ffffff"
-                strokeWidth="1"
-              />
-              <text
-                x={shot.x}
-                y={shot.y - 5}
-                fontSize="6"
-                fontWeight="bold"
-                fill="#ffffff"
-                textAnchor="middle"
-                className="drop-shadow-md select-none"
-              >
-                {shot.score}
-              </text>
-            </g>
-          ))}
+  if (isField) {
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Diana de Campo / JJCC (6 a 1)
+        </span>
+        <svg viewBox="0 0 300 300" className="size-64 cursor-pointer select-none drop-shadow-md">
+          {/* Anillos Negros (1 a 4 pts) */}
+          <circle cx="150" cy="150" r="140" fill="#18181b" stroke="#3f3f46" strokeWidth="2" onClick={() => onScoreSelect('1')} />
+          <circle cx="150" cy="150" r="115" fill="#18181b" stroke="#3f3f46" strokeWidth="2" onClick={() => onScoreSelect('2')} />
+          <circle cx="150" cy="150" r="90" fill="#18181b" stroke="#3f3f46" strokeWidth="2" onClick={() => onScoreSelect('3')} />
+          <circle cx="150" cy="150" r="65" fill="#18181b" stroke="#3f3f46" strokeWidth="2" onClick={() => onScoreSelect('4')} />
+          {/* Centro Amarillo (5 y 6 pts) */}
+          <circle cx="150" cy="150" r="40" fill="#eab308" stroke="#ca8a04" strokeWidth="2" onClick={() => onScoreSelect('5')} />
+          <circle cx="150" cy="150" r="18" fill="#fde047" stroke="#ca8a04" strokeWidth="1.5" onClick={() => onScoreSelect('6')} />
+          <circle cx="150" cy="150" r="8" fill="#eab308" stroke="#ca8a04" strokeWidth="1" onClick={() => onScoreSelect('+')} />
         </svg>
+        <button type="button" onClick={() => onScoreSelect('M')} className="px-3 py-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-lg">
+          M (Miss)
+        </button>
       </div>
+    )
+  }
 
-      <button
-        type="button"
-        onClick={() => setCurrentShots([])}
-        className="text-xs text-muted-foreground hover:text-destructive underline"
-      >
-        Limpiar impactos
+  // Diana Target Estándar (Indoor / Outdoor 10 a 1)
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <svg viewBox="0 0 300 300" className="size-64 cursor-pointer select-none drop-shadow-md">
+        <circle cx="150" cy="150" r="140" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" onClick={() => onScoreSelect('1')} />
+        <circle cx="150" cy="150" r="126" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" onClick={() => onScoreSelect('2')} />
+        <circle cx="150" cy="150" r="112" fill="#000000" stroke="#334155" strokeWidth="2" onClick={() => onScoreSelect('3')} />
+        <circle cx="150" cy="150" r="98" fill="#000000" stroke="#334155" strokeWidth="2" onClick={() => onScoreSelect('4')} />
+        <circle cx="150" cy="150" r="84" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="2" onClick={() => onScoreSelect('5')} />
+        <circle cx="150" cy="150" r="70" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="2" onClick={() => onScoreSelect('6')} />
+        <circle cx="150" cy="150" r="56" fill="#ef4444" stroke="#b91c1c" strokeWidth="2" onClick={() => onScoreSelect('7')} />
+        <circle cx="150" cy="150" r="42" fill="#ef4444" stroke="#b91c1c" strokeWidth="2" onClick={() => onScoreSelect('8')} />
+        <circle cx="150" cy="150" r="28" fill="#eab308" stroke="#ca8a04" strokeWidth="2" onClick={() => onScoreSelect('9')} />
+        <circle cx="150" cy="150" r="14" fill="#eab308" stroke="#ca8a04" strokeWidth="2" onClick={() => onScoreSelect('10')} />
+        <circle cx="150" cy="150" r="6" fill="#eab308" stroke="#ca8a04" strokeWidth="1" onClick={() => onScoreSelect('X')} />
+      </svg>
+      <button type="button" onClick={() => onScoreSelect('M')} className="px-3 py-1 bg-destructive text-destructive-foreground text-xs font-bold rounded-lg">
+        M (Miss)
       </button>
     </div>
   )
