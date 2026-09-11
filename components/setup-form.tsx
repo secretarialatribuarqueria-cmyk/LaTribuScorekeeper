@@ -1,24 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Trash2, Trophy, Users } from 'lucide-react'
-import type { BowType, DisciplineId } from '@/lib/types'
+import React, { useState } from 'react'
 
 interface SetupFormProps {
-  onStart: (data: {
-    format: 'patrulla' | 'cruces' | 'torneo'
-    disciplineId: DisciplineId
-    archers: Array<{ name: string; category: string; bowType: BowType }>
-  }) => void
+  onStart: (data: any) => void
 }
 
-const CATEGORIES = ['Escuela', 'Juvenil', 'U12', 'U15', 'U18', 'U21', 'Senior', 'Master']
-const BOW_TYPES: BowType[] = ['Recurvo', 'Compuesto', 'Raso', 'Tradicional', 'Longbow']
-
 export function SetupForm({ onStart }: SetupFormProps) {
-  const [format, setFormat] = useState<'patrulla' | 'cruces' | 'torneo'>('torneo')
-  const [disciplineId, setDisciplineId] = useState<DisciplineId>('indoor_18m')
-  const [archers, setArchers] = useState<Array<{ name: string; category: string; bowType: BowType }>>([
+  const [format, setFormat] = useState('torneo')
+  const [disciplineId, setDisciplineId] = useState('indoor_18m')
+  const [archers, setArchers] = useState([
     { name: '', category: 'Senior', bowType: 'Recurvo' },
   ])
 
@@ -53,7 +44,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
         <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Modalidad</label>
         <select
           value={format}
-          onChange={(e) => setFormat(e.target.value as any)}
+          onChange={(e) => setFormat(e.target.value)}
           className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm font-semibold"
         >
           <option value="torneo">Torneo WA (Clasificación + Eliminatorias)</option>
@@ -66,7 +57,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
         <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Disciplina</label>
         <select
           value={disciplineId}
-          onChange={(e) => setDisciplineId(e.target.value as DisciplineId)}
+          onChange={(e) => setDisciplineId(e.target.value)}
           className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm font-semibold"
         >
           <option value="indoor_18m">Sala 18m (60 Flechas)</option>
@@ -85,9 +76,9 @@ export function SetupForm({ onStart }: SetupFormProps) {
             type="button"
             onClick={addArcher}
             disabled={archers.length >= 16}
-            className="flex items-center gap-1 text-xs font-bold text-emerald-400 hover:underline disabled:opacity-50"
+            className="text-xs font-bold text-emerald-400 hover:underline disabled:opacity-50"
           >
-            <Plus className="w-4 h-4" /> Agregar Arquero
+            + Agregar Arquero
           </button>
         </div>
 
@@ -106,16 +97,16 @@ export function SetupForm({ onStart }: SetupFormProps) {
               onChange={(e) => updateArcher(idx, 'category', e.target.value)}
               className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs font-semibold text-white"
             >
-              {CATEGORIES.map((c) => (
+              {['Escuela', 'Juvenil', 'U12', 'U15', 'U18', 'U21', 'Senior', 'Master'].map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
             <select
               value={archer.bowType}
-              onChange={(e) => updateArcher(idx, 'bowType', e.target.value as BowType)}
+              onChange={(e) => updateArcher(idx, 'bowType', e.target.value)}
               className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-2 text-xs font-semibold text-white"
             >
-              {BOW_TYPES.map((b) => (
+              {['Recurvo', 'Compuesto', 'Raso', 'Tradicional', 'Longbow'].map((b) => (
                 <option key={b} value={b}>{b}</option>
               ))}
             </select>
@@ -123,9 +114,9 @@ export function SetupForm({ onStart }: SetupFormProps) {
               <button
                 type="button"
                 onClick={() => removeArcher(idx)}
-                className="text-zinc-500 hover:text-red-400 p-1"
+                className="text-zinc-500 hover:text-red-400 px-2 text-xs font-bold"
               >
-                <Trash2 className="w-4 h-4" />
+                X
               </button>
             )}
           </div>
@@ -134,9 +125,9 @@ export function SetupForm({ onStart }: SetupFormProps) {
 
       <button
         type="submit"
-        className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold uppercase tracking-wider text-white shadow-lg hover:bg-emerald-500 transition-all"
+        className="mt-4 flex items-center justify-center rounded-xl bg-emerald-600 py-3 text-sm font-bold uppercase tracking-wider text-white shadow-lg hover:bg-emerald-500 transition-all"
       >
-        <Trophy className="w-5 h-5" /> Comenzar Torneo
+        Comenzar Torneo
       </button>
     </form>
   )
