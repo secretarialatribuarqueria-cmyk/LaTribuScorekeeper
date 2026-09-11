@@ -2,25 +2,26 @@
 
 import React, { useState } from 'react'
 import { Users, Swords, Target, Plus, Trash2, ArrowRight } from 'lucide-react'
+import type { BowType, DisciplineId } from '@/lib/types'
 
 interface SetupFormProps {
   onStart: (data: {
-    format: 'patrulla' | 'cruces' | 'torneo'
-    disciplineId: string
-    archers: Array<{ name: string; category: string; bowType: string }>
+    format: 'patrulla' | 'cruces'
+    disciplineId: DisciplineId
+    archers: Array<{ name: string; category: string; bowType: BowType }>
   }) => void
 }
 
 export function SetupForm({ onStart }: SetupFormProps) {
-  const [format, setFormat] = useState<'patrulla' | 'cruces' | 'torneo'>('patrulla')
-  const [disciplineId, setDisciplineId] = useState('indoor_18m')
-  const [archers, setArchers] = useState([
-    { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' },
+  const [format, setFormat] = useState<'patrulla' | 'cruces'>('patrulla')
+  const [disciplineId, setDisciplineId] = useState<DisciplineId>('indoor_18m')
+  const [archers, setArchers] = useState<Array<{ name: string; category: string; bowType: BowType }>>([
+    { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' as BowType },
   ])
 
   const addArcher = () => {
     if (archers.length < 4) {
-      setArchers([...archers, { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' }])
+      setArchers([...archers, { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' as BowType }])
     }
   }
 
@@ -36,8 +37,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
     setArchers(updated)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleStart = () => {
     const validArchers = archers.filter((a) => a.name.trim() !== '')
     if (validArchers.length === 0) return
 
@@ -51,7 +51,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
   const hasName = archers.some((a) => a.name.trim() !== '')
 
   return (
-    <form onSubmit={handleSubmit} className="min-h-screen bg-[#0a120c] text-white p-4 pb-32 max-w-3xl mx-auto flex flex-col gap-6 font-sans">
+    <div className="min-h-screen bg-[#0a120c] text-white p-4 pb-32 max-w-3xl mx-auto flex flex-col gap-6 font-sans">
       {/* Header */}
       <div className="flex flex-col items-center gap-2 text-center pt-2">
         <div className="w-16 h-16 bg-white/10 rounded-xl p-2 flex items-center justify-center border border-emerald-900/50">
@@ -235,14 +235,16 @@ export function SetupForm({ onStart }: SetupFormProps) {
         ))}
       </div>
 
-      {/* Botón de envío */}
+      {/* Botón Acción Directa */}
       <div className="pt-4">
         <button
-          type="submit"
+          type="button"
+          onClick={handleStart}
+          disabled={!hasName}
           className={`w-full py-4 px-4 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${
             hasName
-              ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
-              : 'bg-emerald-950/60 text-emerald-600/70 border border-emerald-900/30'
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer active:scale-95'
+              : 'bg-emerald-950/60 text-emerald-600/70 border border-emerald-900/30 opacity-60 cursor-not-allowed'
           }`}
         >
           {hasName ? (
@@ -254,6 +256,6 @@ export function SetupForm({ onStart }: SetupFormProps) {
           )}
         </button>
       </div>
-    </form>
+    </div>
   )
 }
