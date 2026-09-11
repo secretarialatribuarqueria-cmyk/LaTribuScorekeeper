@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { AppHeader } from '@/components/app-header'
+import React, { useState } from 'react'
 import { SetupForm } from '@/components/setup-form'
 import { ScoringScreen } from '@/components/scoring-screen'
 
@@ -16,16 +15,17 @@ export default function Page() {
     setSession(null)
   }
 
+  if (!session) {
+    return <SetupForm onStart={handleStart} />
+  }
+
   return (
-    <main className="min-h-screen bg-[#0a120c]">
-      {!session ? (
-        <SetupForm onStart={handleStart} />
-      ) : (
-        <div className="p-4 text-white">
-          <AppHeader onReset={handleReset} />
-          <ScoringScreen session={session} onReset={handleReset} />
-        </div>
-      )}
+    <main className="min-h-screen bg-[#0a120c] text-white">
+      <ScoringScreen 
+        session={session} 
+        onReset={handleReset} 
+        {...session} 
+      />
     </main>
   )
 }
