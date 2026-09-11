@@ -6,22 +6,22 @@ import type { BowType, DisciplineId } from '@/lib/types'
 
 interface SetupFormProps {
   onStart: (data: {
-    format: 'patrulla' | 'cruces'
+    format: 'patrulla' | 'cruces' | 'torneo'
     disciplineId: DisciplineId
     archers: Array<{ name: string; category: string; bowType: BowType }>
   }) => void
 }
 
 export function SetupForm({ onStart }: SetupFormProps) {
-  const [format, setFormat] = useState<'patrulla' | 'cruces'>('patrulla')
+  const [format, setFormat] = useState<'patrulla' | 'cruces' | 'torneo'>('patrulla')
   const [disciplineId, setDisciplineId] = useState<DisciplineId>('indoor_18m')
   const [archers, setArchers] = useState<Array<{ name: string; category: string; bowType: BowType }>>([
-    { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' as BowType },
+    { name: '', category: 'Senior', bowType: 'Recurvo' },
   ])
 
   const addArcher = () => {
     if (archers.length < 4) {
-      setArchers([...archers, { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' as BowType }])
+      setArchers([...archers, { name: '', category: 'Senior', bowType: 'Recurvo' }])
     }
   }
 
@@ -37,7 +37,8 @@ export function SetupForm({ onStart }: SetupFormProps) {
     setArchers(updated)
   }
 
-  const handleStart = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
     const validArchers = archers.filter((a) => a.name.trim() !== '')
     if (validArchers.length === 0) return
 
@@ -51,8 +52,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
   const hasName = archers.some((a) => a.name.trim() !== '')
 
   return (
-    <div className="min-h-screen bg-[#0a120c] text-white p-4 pb-32 max-w-3xl mx-auto flex flex-col gap-6 font-sans">
-      {/* Header */}
+    <form onSubmit={handleSubmit} className="min-h-screen bg-[#0a120c] text-white p-4 pb-32 max-w-3xl mx-auto flex flex-col gap-6 font-sans">
       <div className="flex flex-col items-center gap-2 text-center pt-2">
         <div className="w-16 h-16 bg-white/10 rounded-xl p-2 flex items-center justify-center border border-emerald-900/50">
           <Target className="w-10 h-10 text-emerald-400" />
@@ -61,7 +61,6 @@ export function SetupForm({ onStart }: SetupFormProps) {
         <p className="text-xs text-emerald-400/70">Elige el formato de competición y registra a los arqueros.</p>
       </div>
 
-      {/* Formato */}
       <div className="flex flex-col gap-2">
         <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
           <Users className="w-3.5 h-3.5" /> FORMATO
@@ -73,7 +72,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
             className={`p-3.5 rounded-xl border text-left transition-all flex items-center gap-3 ${
               format === 'patrulla'
                 ? 'bg-emerald-950/80 border-emerald-500 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400 hover:border-emerald-800'
+                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
             }`}
           >
             <Users className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -89,7 +88,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
             className={`p-3.5 rounded-xl border text-left transition-all flex items-center gap-3 ${
               format === 'cruces'
                 ? 'bg-emerald-950/80 border-emerald-500 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400 hover:border-emerald-800'
+                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
             }`}
           >
             <Swords className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -101,7 +100,6 @@ export function SetupForm({ onStart }: SetupFormProps) {
         </div>
       </div>
 
-      {/* Disciplina */}
       <div className="flex flex-col gap-2">
         <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
           <Target className="w-3.5 h-3.5" /> DISCIPLINA
@@ -161,7 +159,6 @@ export function SetupForm({ onStart }: SetupFormProps) {
         </div>
       </div>
 
-      {/* Arqueros */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
@@ -171,7 +168,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
             type="button"
             onClick={addArcher}
             disabled={archers.length >= 4}
-            className="flex items-center gap-1 text-xs font-bold bg-[#111c14] border border-emerald-900/50 text-white px-3 py-1 rounded-lg hover:bg-emerald-900/40 disabled:opacity-40"
+            className="flex items-center gap-1 text-xs font-bold bg-[#111c14] border border-emerald-900/50 text-white px-3 py-1 rounded-lg disabled:opacity-40"
           >
             <Plus className="w-3.5 h-3.5" /> Añadir
           </button>
@@ -184,21 +181,16 @@ export function SetupForm({ onStart }: SetupFormProps) {
                 {idx + 1}
               </span>
               <div className="flex-1">
-                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">NOMBRE</label>
                 <input
                   type="text"
                   placeholder="Nombre del arquero"
                   value={archer.name}
                   onChange={(e) => updateArcher(idx, 'name', e.target.value)}
-                  className="w-full bg-[#0a120c] border border-emerald-900/60 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#0a120c] border border-emerald-900/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
               {archers.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeArcher(idx)}
-                  className="text-zinc-500 hover:text-red-400 p-1"
-                >
+                <button type="button" onClick={() => removeArcher(idx)} className="text-zinc-500 hover:text-red-400 p-1">
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
@@ -222,10 +214,10 @@ export function SetupForm({ onStart }: SetupFormProps) {
                 <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">TIPO DE ARCO</label>
                 <select
                   value={archer.bowType}
-                  onChange={(e) => updateArcher(idx, 'bowType', e.target.value)}
+                  onChange={(e) => updateArcher(idx, 'bowType', e.target.value as BowType)}
                   className="w-full bg-[#0a120c] border border-emerald-900/60 rounded-lg px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
                 >
-                  {['Recurvo Olímpico', 'Compuesto', 'Raso', 'Tradicional', 'Longbow'].map((b) => (
+                  {['Recurvo', 'Compuesto', 'Raso', 'Tradicional', 'Longbow'].map((b) => (
                     <option key={b} value={b}>{b}</option>
                   ))}
                 </select>
@@ -235,16 +227,14 @@ export function SetupForm({ onStart }: SetupFormProps) {
         ))}
       </div>
 
-      {/* Botón Acción Directa */}
       <div className="pt-4">
         <button
-          type="button"
-          onClick={handleStart}
+          type="submit"
           disabled={!hasName}
           className={`w-full py-4 px-4 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${
             hasName
               ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer active:scale-95'
-              : 'bg-emerald-950/60 text-emerald-600/70 border border-emerald-900/30 opacity-60 cursor-not-allowed'
+              : 'bg-emerald-950/60 text-emerald-600/70 border border-emerald-900/30 cursor-not-allowed'
           }`}
         >
           {hasName ? (
@@ -256,6 +246,6 @@ export function SetupForm({ onStart }: SetupFormProps) {
           )}
         </button>
       </div>
-    </div>
+    </form>
   )
 }
