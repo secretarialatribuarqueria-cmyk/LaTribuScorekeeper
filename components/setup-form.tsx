@@ -4,11 +4,15 @@ import React, { useState } from 'react'
 import { Users, Swords, Target, Plus, Trash2, ArrowRight } from 'lucide-react'
 
 interface SetupFormProps {
-  onStart: (data: any) => void
+  onStart: (data: {
+    format: 'patrulla' | 'cruces' | 'torneo'
+    disciplineId: string
+    archers: Array<{ name: string; category: string; bowType: string }>
+  }) => void
 }
 
 export function SetupForm({ onStart }: SetupFormProps) {
-  const [format, setFormat] = useState('patrulla')
+  const [format, setFormat] = useState<'patrulla' | 'cruces' | 'torneo'>('patrulla')
   const [disciplineId, setDisciplineId] = useState('indoor_18m')
   const [archers, setArchers] = useState([
     { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' },
@@ -32,8 +36,6 @@ export function SetupForm({ onStart }: SetupFormProps) {
     setArchers(updated)
   }
 
-  const hasName = archers.some((a) => a.name.trim() !== '')
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const validArchers = archers.filter((a) => a.name.trim() !== '')
@@ -46,9 +48,11 @@ export function SetupForm({ onStart }: SetupFormProps) {
     })
   }
 
+  const hasName = archers.some((a) => a.name.trim() !== '')
+
   return (
     <form onSubmit={handleSubmit} className="min-h-screen bg-[#0a120c] text-white p-4 pb-32 max-w-3xl mx-auto flex flex-col gap-6 font-sans">
-      {/* Logotipo y Título */}
+      {/* Header */}
       <div className="flex flex-col items-center gap-2 text-center pt-2">
         <div className="w-16 h-16 bg-white/10 rounded-xl p-2 flex items-center justify-center border border-emerald-900/50">
           <Target className="w-10 h-10 text-emerald-400" />
@@ -157,7 +161,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
         </div>
       </div>
 
-      {/* Lista de Arqueros */}
+      {/* Arqueros */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
@@ -231,7 +235,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
         ))}
       </div>
 
-      {/* Botón inferior principal con clic directo */}
+      {/* Botón de envío */}
       <div className="pt-4">
         <button
           type="submit"
