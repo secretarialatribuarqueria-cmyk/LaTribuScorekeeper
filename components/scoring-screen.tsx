@@ -1,138 +1,333 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Target, RotateCcw, Award } from 'lucide-react'
-
-interface ScoringScreenProps {
-  tournament: any
-  activeArcher?: number
-  setActiveArcher?: (index: number) => void
-  onSetArrow?: (archerIdx: number, end: number, arrowIdx: number, val: string | number) => void
-  onReset?: () => void
-  onViewSummary?: () => void
-  onViewRanking?: () => void
-}
+import { InteractiveTarget } from '@/components/interactive-target'
+import { ArcherStats } from '@/components/archer-stats'
+import { ExportModal } from '@/components/export-modal'
+import { useMemo, useState } from 'react'
+import { ChevronLeft, ChevronRight, Delete, Grid, Target as TargetIcon, BarChart2, Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Keypad } from '@/components/keypad'
+import { DISCIPLINES } from '@/lib/disciplines'
+import { arrowKey, computeStats, endTotal } from '@/lib/scoring'
+import type { Tournament } from '@/lib/types'
 
 export function ScoringScreen({
   tournament,
-  activeArcher: externalActiveArcher = 0,
-  setActiveArcher: externalSetActiveArcher,
-  onSetArrow,
-  onReset,
-}: ScoringScreenProps) {
-  const [internalActiveArcher, setInternalActiveArcher] = useState(0)
+  activeArcher,
+  onActiveArcherChange,
+  setArrow,
+}: {
+  tournament: Tournament
+  activeArcher: number
+  onActiveArcherChange: (index: number) => void
+  setArrow: (
+    archerId: string,
+    endIndex: number,
+    arrowIndex: number,
+    label: string | null,
+  ) => void
+}) {
+  const config = DISCIPLINES[tournament.disciplineId]
+  const archer = tournament.archers[activeArcher]
   const [currentEnd, setCurrentEnd] = useState(0)
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  
+  // Estado para alternar entre Teclado, Diana y Estadísticas
+  const [activeTab, setActiveTab] = useState<'keypad' | 'target' | 'stats'>('keypad')
+  
+  // Estado para abrir/cerrar el modal de exportación
+  const [isExportOpen, setIsExportOpen] = useState(false)
 
-  const activeArcherIdx = externalSetActiveArcher ? externalActiveArcher : internalActiveArcher
-  const changeArcher = (idx: number) => {
-    if (externalSetActiveArcher) {
-      externalSetActiveArcher(idx)
-    } else {
-      setInternalActiveArcher(idx)
+  const end = archer.ends[currentEnd]
+  const stats = useMemo(() => computeStats(config, archer), [config, archer])
+
+  const firstEmptySlot = end.findIndex((a) => a == null)
+  const targetSlot = selectedSlot ?? (firstEmptySlot === -1 ? null : firstEmptySlot)
+
+  const recorded = end
+    .map((label, slot) => ({ label, slot }))
+    .filter((x) => x.label != null)
+    .sort((a, b) => arrowKeyValue(b.label) - arrowKeyValue(a.label))
+
+  function arrowKeyValue(label: string | null) {
+    const k = arrowKey(config, label)
+    return k ? k.value : -1
+  }
+
+  function pressKey(label: string) {
+    if (targetSlot == null) return
+
+    setArrow(archer.id, currentEnd, targetSlot, String(label))
+    setSelectedSlot(null)
+
+    const updatedEnd = [...end]
+    updatedEnd[targetSlot] = String(label)
+    const isEndComplete = updatedEnd.every((val) => val != null)
+
+    if (isEndComplete && selectedSlot == null) {
+      const isLastArcher = activeArcher === tournament.archers.length - 1
+
+      if (!isLastArcher) {
+        onActiveArcherChange(activeArcher + 1)
+      } else {
+        if (currentEnd < config.ends - 1) {
+          onActiveArcherChange(0)
+          setCurrentEnd((e) => e + 1)
+        }
+      }
     }
   }
 
-  const session = tournament || {}
-  const archers = session.archers || []
-  const currentArcher = archers[activeArcherIdx] || { name: 'Arquero', scores: [] }
-
-  const handleKeyClick = (val: string | number) => {
-    if (onSetArrow) {
-      const arrowIndexInEnd = (currentArcher.scores || []).length % 3
-      onSetArrow(activeArcherIdx, currentEnd, arrowIndexInEnd, val)
-    }
+  function deleteLast() {
+    let lastSlot = -1
+    for (let i = 0; i < end.length; i++) if (end[i] != null) lastSlot = i
+    if (lastSlot === -1) return
+    setArrow(archer.id, currentEnd, lastSlot, null)
+    setSelectedSlot(null)
   }
 
-  const keyValues = ['X', 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 'M']
+  function goEnd(delta: number) {
+    setCurrentEnd((e) => Math.min(config.ends - 1, Math.max(0, e + delta)))
+    setSelectedSlot(null)
+  }
+
+  const currentEndTotal = endTotal(config, end)
 
   return (
-    <div className="min-h-screen bg-[#0a120c] text-white p-4 max-w-2xl mx-auto flex flex-col gap-6 font-sans">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-emerald-900/50 pb-4">
-        <div className="flex items-center gap-2">
-          <Target className="w-6 h-6 text-emerald-400" />
-          <h1 className="text-lg font-black uppercase text-emerald-100">Planilla de Anotación</h1>
-        </div>
-        {onReset && (
-          <button
-            onClick={onReset}
-            className="flex items-center gap-1.5 text-xs bg-red-950/60 border border-red-900/50 text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-900/40 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> Salir / Reiniciar
-          </button>
-        )}
+    <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-3">
+      {/* Pestañas de Selección de Arquero */}
+      <div className="mb-3 grid grid-cols-4 gap-1.5">
+        {tournament.archers.map((a, i) => {
+          const active = i === activeArcher
+          const letter = a.targetLetter || String.fromCharCode(65 + i)
+          return (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => {
+                onActiveArcherChange(i)
+                setSelectedSlot(null)
+              }}
+              aria-pressed={active}
+              className={`flex flex-col items-center rounded-lg border px-1 py-2 transition-colors ${
+                active
+                  ? 'border-primary-bright bg-primary text-primary-foreground'
+                  : 'border-border bg-card text-muted-foreground'
+              }`}
+            >
+              <span className="font-display text-xs font-bold uppercase">
+                {letter}
+              </span>
+              <span className="max-w-full truncate text-[11px]">
+                {a.name.split(' ')[0]}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Selector de Arqueros */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {archers.map((archer: any, idx: number) => (
+      {/* Menú de Modos / Vistas + Botón Exportar */}
+      <div className="mb-3 flex items-center gap-1.5 rounded-xl border border-border bg-card p-1.5">
+        <div className="flex flex-1 gap-1.5">
           <button
-            key={idx}
-            onClick={() => changeArcher(idx)}
-            className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeArcherIdx === idx
-                ? 'bg-emerald-600 border-emerald-400 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
+            type="button"
+            onClick={() => setActiveTab('keypad')}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
+              activeTab === 'keypad'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
             }`}
           >
-            {archer.name || `Arquero ${idx + 1}`}
+            <Grid className="size-4" /> Teclado
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setActiveTab('target')}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
+              activeTab === 'target'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <TargetIcon className="size-4" /> Diana
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('stats')}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold uppercase transition-colors ${
+              activeTab === 'stats'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            <BarChart2 className="size-4" /> Stats
+          </button>
+        </div>
+
+        {/* Botón de Exportación */}
+        <button
+          type="button"
+          onClick={() => setIsExportOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-500 transition-colors hover:bg-amber-500/20"
+        >
+          <Download className="size-4" /> Exportar
+        </button>
       </div>
 
-      {/* Tarjeta del Arquero */}
-      <div className="bg-[#111c14] border border-emerald-900/40 rounded-2xl p-4 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">ARQUERO ACTIVO</p>
-          <h2 className="text-xl font-extrabold text-white">{currentArcher.name}</h2>
-          <p className="text-xs text-zinc-400">
-            Tanda <span className="text-emerald-400 font-bold">{currentEnd + 1}</span> / 10
-          </p>
-        </div>
-        <div className="flex items-center gap-2 bg-[#0a120c] px-4 py-2 rounded-xl border border-emerald-900/60">
-          <Award className="w-5 h-5 text-amber-400" />
-          <span className="text-xl font-black text-emerald-300">
-            {(currentArcher.scores || []).reduce((acc: number, curr: any) => {
-              if (curr === 'X' || curr === 10) return acc + 10
-              if (typeof curr === 'number') return acc + curr
-              return acc
-            }, 0)}
-          </span>
-        </div>
-      </div>
+      {/* Vista de Estadísticas */}
+      {activeTab === 'stats' ? (
+        <ArcherStats
+          archer={archer}
+          disciplineId={tournament.disciplineId}
+        />
+      ) : (
+        <>
+          {/* Info del Arquero y Promedio */}
+          <div className="mb-3 flex items-stretch gap-3">
+            <div className="flex-1 rounded-xl border border-border bg-card p-3">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-md bg-amber-500/20 font-display text-xs font-black text-amber-500 border border-amber-500/30">
+                  {archer.targetLetter || String.fromCharCode(65 + activeArcher)}
+                </span>
+                <p className="truncate font-display text-base font-bold uppercase tracking-wide">
+                  {archer.name}
+                </p>
+              </div>
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                {archer.category ? `${archer.category} · ` : ''}
+                {archer.bowType}
+              </p>
+              <div className="mt-2 flex gap-4 text-xs">
+                <Stat label="Total" value={stats.total} />
+                <Stat label="Flechas" value={stats.arrows} />
+              </div>
+            </div>
+            <div className="flex w-28 shrink-0 flex-col items-center justify-center rounded-xl border border-primary-bright/40 bg-primary/20 p-3 text-center">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-primary-bright">
+                Promedio
+              </span>
+              <span className="font-display text-3xl font-bold tabular-nums text-foreground">
+                {stats.average.toFixed(2)}
+              </span>
+              <span className="text-[10px] text-muted-foreground">por flecha</span>
+            </div>
+          </div>
 
-      {/* Teclado de Anotación (Keypad) */}
-      <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">INGRESAR PUNTUACIÓN</label>
-        <div className="grid grid-cols-4 gap-2">
-          {keyValues.map((val) => (
-            <button
-              key={val}
-              onClick={() => handleKeyClick(val)}
-              className="py-4 rounded-xl bg-[#111c14] border border-emerald-900/60 text-lg font-black text-emerald-100 hover:bg-emerald-900/50 hover:border-emerald-500 active:scale-95 transition-all cursor-pointer"
+          {/* Navegación por Tandas */}
+          <div className="mb-3 flex items-center justify-between rounded-xl border border-border bg-card px-2 py-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => goEnd(-1)}
+              disabled={currentEnd === 0}
             >
-              {val}
-            </button>
-          ))}
-        </div>
-      </div>
+              <ChevronLeft className="size-5" />
+            </Button>
+            <div className="text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                {config.endLabel} {currentEnd + 1} / {config.ends}
+              </p>
+              <p className="font-display text-lg font-bold tabular-nums">
+                {currentEndTotal} pts
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => goEnd(1)}
+              disabled={currentEnd === config.ends - 1}
+            >
+              <ChevronRight className="size-5" />
+            </Button>
+          </div>
 
-      {/* Control de Tandas */}
-      <div className="flex justify-between items-center pt-2">
-        <button
-          onClick={() => setCurrentEnd((prev) => Math.max(0, prev - 1))}
-          disabled={currentEnd === 0}
-          className="px-4 py-2 rounded-lg bg-[#111c14] border border-emerald-900/40 text-xs text-zinc-300 disabled:opacity-40"
-        >
-          Tanda Anterior
-        </button>
-        <button
-          onClick={() => setCurrentEnd((prev) => prev + 1)}
-          className="px-4 py-2 rounded-lg bg-emerald-700 text-xs font-bold text-white hover:bg-emerald-600"
-        >
-          Siguiente Tanda
-        </button>
-      </div>
+          {/* Visor de Flechas */}
+          <div className="mb-3 min-h-16 rounded-xl border border-border bg-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Flechas de la tanda
+              </span>
+              <button
+                type="button"
+                onClick={deleteLast}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+              >
+                <Delete className="size-4" /> Borrar última
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {recorded.length === 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {activeTab === 'keypad'
+                    ? 'Toca un valor abajo para anotar.'
+                    : 'Toca en la diana para anotar.'}
+                </span>
+              )}
+              {recorded.map(({ label, slot }) => {
+                const k = arrowKey(config, label)
+                const isSelected = slot === selectedSlot
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    onClick={() => setSelectedSlot(isSelected ? null : slot)}
+                    style={{ backgroundColor: k?.bg, color: k?.fg }}
+                    className={`flex size-12 items-center justify-center rounded-lg border font-display text-xl font-bold tabular-nums ${
+                      isSelected ? 'border-primary-bright ring-2 ring-primary-bright' : 'border-black/20'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+              {targetSlot != null && (
+                <div className="flex size-12 items-center justify-center rounded-lg border-2 border-dashed border-primary-bright/60 text-xs text-primary-bright">
+                  {selectedSlot != null ? 'editar' : 'sig.'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Renderizado de Teclado o Diana (Soporta 3D, JJCC e Indoor/Outdoor) */}
+          {activeTab === 'keypad' ? (
+            <Keypad
+              keys={config.keypad}
+              onPress={pressKey}
+              disabled={targetSlot == null}
+            />
+          ) : (
+            <div className="flex flex-col items-center rounded-xl border border-border bg-card p-4">
+              <InteractiveTarget
+                disciplineId={tournament.disciplineId}
+                onScoreSelect={(score) => pressKey(String(score))}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Modal de Exportación (PDF / PNG) */}
+      <ExportModal
+        archer={archer}
+        disciplineId={tournament.disciplineId}
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+      />
     </div>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="flex flex-col">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span className="font-display text-lg font-bold tabular-nums leading-none">
+        {value}
+      </span>
+    </span>
   )
 }

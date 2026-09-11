@@ -1,251 +1,451 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Users, Swords, Target, Plus, Trash2, ArrowRight } from 'lucide-react'
-import type { BowType, DisciplineId } from '@/lib/types'
+import Image from 'next/image'
+import { useState } from 'react'
+import { Plus, Swords, Target, Trash2, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { DISCIPLINE_LIST, DISCIPLINES } from '@/lib/disciplines'
+import { matchFormatFor, type MatchDraft } from '@/lib/match'
+import {
+  BOW_TYPES,
+  CATEGORIES,
+  type BowType,
+  type DisciplineId,
+} from '@/lib/types'
+import type { ArcherDraft } from '@/lib/use-tournament'
 
-interface SetupFormProps {
-  onStart: (data: {
-    format: 'patrulla' | 'cruces' | 'torneo'
-    disciplineId: DisciplineId
-    archers: Array<{ name: string; category: string; bowType: BowType }>
-  }) => void
+type Mode = 'patrulla' | 'match'
+
+function emptyArcher(): ArcherDraft {
+  return { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' }
 }
 
-export function SetupForm({ onStart }: SetupFormProps) {
-  const [format, setFormat] = useState<'patrulla' | 'cruces' | 'torneo'>('patrulla')
-  const [disciplineId, setDisciplineId] = useState<DisciplineId>('indoor_18m')
-  const [archers, setArchers] = useState<Array<{ name: string; category: string; bowType: BowType }>>([
-    { name: '', category: 'Senior', bowType: 'Recurvo' },
+export function SetupForm({
+  onStartPatrulla,
+  onStartMatch,
+}: {
+  onStartPatrulla: (discipline: DisciplineId, archers: ArcherDraft[]) => void
+  onStartMatch: (discipline: DisciplineId, archers: [MatchDraft, MatchDraft]) => void
+}) {
+  const [mode, setMode] = useState<Mode>('patrulla')
+  const [discipline, setDiscipline] = useState<DisciplineId>('indoor')
+  const [archers, setArchers] = useState<ArcherDraft[]>([emptyArcher()])
+  const [duel, setDuel] = useState<[ArcherDraft, ArcherDraft]>([
+    { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' },
+    { name: '', category: 'Senior', bowType: 'Recurvo Olímpico' },
   ])
 
-  const addArcher = () => {
-    if (archers.length < 4) {
-      setArchers([...archers, { name: '', category: 'Senior', bowType: 'Recurvo' }])
-    }
+  function updateArcher(index: number, patch: Partial<ArcherDraft>) {
+    setArchers((prev) => prev.map((a, i) => (i === index ? { ...a, ...patch } : a)))
   }
 
-  const removeArcher = (index: number) => {
-    if (archers.length > 1) {
-      setArchers(archers.filter((_, i) => i !== index))
-    }
-  }
-
-  const updateArcher = (index: number, field: string, value: string) => {
-    const updated = [...archers]
-    updated[index] = { ...updated[index], [field]: value }
-    setArchers(updated)
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const validArchers = archers.filter((a) => a.name.trim() !== '')
-    if (validArchers.length === 0) return
-
-    onStart({
-      format,
-      disciplineId,
-      archers: validArchers,
+  function updateDuel(index: 0 | 1, patch: Partial<ArcherDraft>) {
+    setDuel((prev) => {
+      const next: [ArcherDraft, ArcherDraft] = [prev[0], prev[1]]
+      next[index] = { ...prev[index], ...patch }
+      return next
     })
   }
 
-  const hasName = archers.some((a) => a.name.trim() !== '')
+  function addArcher() {
+    setArchers((prev) => (prev.length >= 4 ? prev : [...prev, emptyArcher()]))
+  }
+
+  function removeArcher(index: number) {
+    setArchers((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)))
+  }
+
+  const canStartPatrulla = archers.every((a) => a.name.trim().length > 0)
+  const canStartMatch = duel.every((a) => a.name.trim().length > 0)
+  const canStart = mode === 'patrulla' ? canStartPatrulla : canStartMatch
+
+  // Preview of the derived match format.
+  const compound = duel[0].bowType === 'Compuesto' || duel[1].bowType === 'Compuesto'
+  const matchInfo = matchFormatFor(discipline, compound ? 'Compuesto' : duel[0].bowType)
+
+  function handleStart() {
+    if (mode === 'patrulla') {
+      onStartPatrulla(discipline, archers)
+    } else {
+      onStartMatch(discipline, [duel[0], duel[1]])
+    }
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="min-h-screen bg-[#0a120c] text-white p-4 pb-32 max-w-3xl mx-auto flex flex-col gap-6 font-sans">
-      <div className="flex flex-col items-center gap-2 text-center pt-2">
-        <div className="w-16 h-16 bg-white/10 rounded-xl p-2 flex items-center justify-center border border-emerald-900/50">
-          <Target className="w-10 h-10 text-emerald-400" />
+    <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-6">
+      <div className="mb-6 flex flex-col items-center text-center">
+        <div className="mb-3 flex size-24 items-center justify-center overflow-hidden rounded-2xl bg-foreground shadow-lg">
+          <Image
+            src="/logo-la-tribu.jpg"
+            alt="Logo La Tribu Arquería"
+            width={96}
+            height={96}
+            className="size-full object-contain"
+            priority
+          />
         </div>
-        <h1 className="text-xl font-black tracking-wider uppercase text-emerald-100">NUEVA SESIÓN</h1>
-        <p className="text-xs text-emerald-400/70">Elige el formato de competición y registra a los arqueros.</p>
+        <h2 className="font-display text-2xl font-bold uppercase tracking-wide text-balance">
+          Nueva Sesión
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground text-pretty">
+          Elige el formato de competición y registra a los arqueros.
+        </p>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5" /> FORMATO
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setFormat('patrulla')}
-            className={`p-3.5 rounded-xl border text-left transition-all flex items-center gap-3 ${
-              format === 'patrulla'
-                ? 'bg-emerald-950/80 border-emerald-500 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
-            }`}
-          >
-            <Users className="w-5 h-5 text-emerald-400 shrink-0" />
-            <div>
-              <div className="text-xs font-bold uppercase text-white">PATRULLA / ENTRENAMIENTO</div>
-              <div className="text-[10px] text-zinc-400">Hasta 4 arqueros anotando en la misma diana.</div>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setFormat('cruces')}
-            className={`p-3.5 rounded-xl border text-left transition-all flex items-center gap-3 ${
-              format === 'cruces'
-                ? 'bg-emerald-950/80 border-emerald-500 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
-            }`}
-          >
-            <Swords className="w-5 h-5 text-emerald-400 shrink-0" />
-            <div>
-              <div className="text-xs font-bold uppercase text-white">CRUCES ELIMINATORIOS / FINALES</div>
-              <div className="text-[10px] text-zinc-400">Enfrentamiento directo 1 vs 1 (Match Play).</div>
-            </div>
-          </button>
+      {/* Mode selection */}
+      <section className="mb-6">
+        <SectionTitle icon={<Swords className="size-4" />}>Formato</SectionTitle>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <ModeCard
+            active={mode === 'patrulla'}
+            onClick={() => setMode('patrulla')}
+            icon={<Users className="size-5" />}
+            title="Patrulla / Entrenamiento"
+            desc="Hasta 4 arqueros anotando en la misma diana."
+          />
+          <ModeCard
+            active={mode === 'match'}
+            onClick={() => setMode('match')}
+            icon={<Swords className="size-5" />}
+            title="Cruces Eliminatorios / Finales"
+            desc="Enfrentamiento directo 1 vs 1 (Match Play)."
+          />
         </div>
+      </section>
+
+      {/* Discipline selection */}
+      <section className="mb-6">
+        <SectionTitle icon={<Target className="size-4" />}>Disciplina</SectionTitle>
+        <div className="grid grid-cols-2 gap-2">
+          {DISCIPLINE_LIST.map((d) => {
+            const active = d.id === discipline
+            return (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setDiscipline(d.id)}
+                aria-pressed={active}
+                className={`rounded-lg border p-3 text-left transition-colors ${
+                  active
+                    ? 'border-primary-bright bg-primary text-primary-foreground'
+                    : 'border-border bg-card text-foreground hover:border-primary-bright/60'
+                }`}
+              >
+                <span className="block font-display text-sm font-semibold uppercase tracking-wide">
+                  {d.name}
+                </span>
+                <span
+                  className={`mt-0.5 block text-xs ${
+                    active ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                  }`}
+                >
+                  {mode === 'patrulla'
+                    ? `${d.ends} ${d.endLabel.toLowerCase()}s · ${
+                        d.fixedArrows ? `${d.arrowsPerEnd}` : `1-${d.arrowsPerEnd}`
+                      } flechas`
+                    : matchDisciplineHint(d.id)}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {mode === 'patrulla' ? (
+        <PatrullaArchers
+          archers={archers}
+          onUpdate={updateArcher}
+          onAdd={addArcher}
+          onRemove={removeArcher}
+        />
+      ) : (
+        <MatchArchers
+          duel={duel}
+          onUpdate={updateDuel}
+          format={matchInfo.format}
+          numEnds={matchInfo.numEnds}
+          arrowsPerEnd={matchInfo.arrowsPerEnd}
+          endLabel={matchInfo.endLabel}
+        />
+      )}
+
+      {/* Botón al final del formulario con margen para no tapar el menú inferior */}
+      <div className="mt-6 mb-20 w-full">
+        <Button
+          type="button"
+          className="h-12 w-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary-bright"
+          disabled={!canStart}
+          onClick={handleStart}
+        >
+          {canStart
+            ? mode === 'patrulla'
+              ? 'Comenzar a Anotar'
+              : 'Comenzar el Cruce'
+            : 'Ingresa el nombre de cada arquero'}
+        </Button>
       </div>
+    </div>
+  )
+}
 
-      <div className="flex flex-col gap-2">
-        <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-          <Target className="w-3.5 h-3.5" /> DISCIPLINA
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setDisciplineId('indoor_18m')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              disciplineId === 'indoor_18m'
-                ? 'bg-emerald-950/80 border-emerald-500 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
-            }`}
-          >
-            <div className="text-xs font-bold uppercase text-white">SALA / INDOOR</div>
-            <div className="text-[10px] text-zinc-400">10 tandas · 3 flechas</div>
-          </button>
+function matchDisciplineHint(id: DisciplineId): string {
+  if (id === 'field' || id === '3d') return '4 blancos · suma total'
+  return 'Sets (o suma total en Compuesto)'
+}
 
-          <button
-            type="button"
-            onClick={() => setDisciplineId('wa_720')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              disciplineId === 'wa_720'
-                ? 'bg-emerald-950/80 border-emerald-500 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
-            }`}
-          >
-            <div className="text-xs font-bold uppercase text-white">AIRE LIBRE / OUTDOOR</div>
-            <div className="text-[10px] text-zinc-400">12 tandas · 6 flechas</div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setDisciplineId('campo')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              disciplineId === 'campo'
-                ? 'bg-emerald-950/80 border-emerald-500 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
-            }`}
-          >
-            <div className="text-xs font-bold uppercase text-white">JUEGOS DE CAMPO / FIELD</div>
-            <div className="text-[10px] text-zinc-400">24 dianas · 3 flechas</div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setDisciplineId('3d')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              disciplineId === '3d'
-                ? 'bg-emerald-950/80 border-emerald-500 text-white'
-                : 'bg-[#111c14] border-emerald-900/40 text-zinc-400'
-            }`}
-          >
-            <div className="text-xs font-bold uppercase text-white">3D</div>
-            <div className="text-[10px] text-zinc-400">24 dianas · 1-2 flechas</div>
-          </button>
-        </div>
+function PatrullaArchers({
+  archers,
+  onUpdate,
+  onAdd,
+  onRemove,
+}: {
+  archers: ArcherDraft[]
+  onUpdate: (i: number, patch: Partial<ArcherDraft>) => void
+  onAdd: () => void
+  onRemove: (i: number) => void
+}) {
+  return (
+    <section className="mb-6">
+      <div className="mb-2 flex items-center justify-between">
+        <SectionTitle icon={<Users className="size-4" />} className="mb-0">
+          Arqueros ({archers.length}/4)
+        </SectionTitle>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={onAdd}
+          disabled={archers.length >= 4}
+        >
+          <Plus className="size-4" /> Añadir
+        </Button>
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" /> ARQUEROS ({archers.length}/4)
-          </label>
-          <button
-            type="button"
-            onClick={addArcher}
-            disabled={archers.length >= 4}
-            className="flex items-center gap-1 text-xs font-bold bg-[#111c14] border border-emerald-900/50 text-white px-3 py-1 rounded-lg disabled:opacity-40"
-          >
-            <Plus className="w-3.5 h-3.5" /> Añadir
-          </button>
-        </div>
-
-        {archers.map((archer, idx) => (
-          <div key={idx} className="bg-[#111c14] border border-emerald-900/40 rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-amber-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                {idx + 1}
+        {archers.map((archer, i) => (
+          <div key={i} className="rounded-xl border border-border bg-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="flex size-7 items-center justify-center rounded-full bg-accent font-display text-sm font-bold text-accent-foreground">
+                {i + 1}
               </span>
-              <div className="flex-1">
-                <input
-                  type="text"
-                  placeholder="Nombre del arquero"
-                  value={archer.name}
-                  onChange={(e) => updateArcher(idx, 'name', e.target.value)}
-                  className="w-full bg-[#0a120c] border border-emerald-900/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
               {archers.length > 1 && (
-                <button type="button" onClick={() => removeArcher(idx)} className="text-zinc-500 hover:text-red-400 p-1">
-                  <Trash2 className="w-4 h-4" />
+                <button
+                  type="button"
+                  onClick={() => onRemove(i)}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
+                  aria-label={`Eliminar arquero ${i + 1}`}
+                >
+                  <Trash2 className="size-4" />
                 </button>
               )}
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">CATEGORÍA</label>
-                <select
-                  value={archer.category}
-                  onChange={(e) => updateArcher(idx, 'category', e.target.value)}
-                  className="w-full bg-[#0a120c] border border-emerald-900/60 rounded-lg px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
-                >
-                  {['Escuela', 'Juvenil', 'U12', 'U15', 'U18', 'U21', 'Senior', 'Master'].map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">TIPO DE ARCO</label>
-                <select
-                  value={archer.bowType}
-                  onChange={(e) => updateArcher(idx, 'bowType', e.target.value as BowType)}
-                  className="w-full bg-[#0a120c] border border-emerald-900/60 rounded-lg px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
-                >
-                  {['Recurvo', 'Compuesto', 'Raso', 'Tradicional', 'Longbow'].map((b) => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <ArcherFields
+              archer={archer}
+              onChange={(patch) => onUpdate(i, patch)}
+            />
           </div>
         ))}
       </div>
+    </section>
+  )
+}
 
-      <div className="pt-4">
-        <button
-          type="submit"
-          disabled={!hasName}
-          className={`w-full py-4 px-4 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${
-            hasName
-              ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer active:scale-95'
-              : 'bg-emerald-950/60 text-emerald-600/70 border border-emerald-900/30 cursor-not-allowed'
+function MatchArchers({
+  duel,
+  onUpdate,
+  format,
+  numEnds,
+  arrowsPerEnd,
+  endLabel,
+}: {
+  duel: [ArcherDraft, ArcherDraft]
+  onUpdate: (i: 0 | 1, patch: Partial<ArcherDraft>) => void
+  format: 'sets' | 'cumulative'
+  numEnds: number
+  arrowsPerEnd: number
+  endLabel: string
+}) {
+  return (
+    <section className="mb-6">
+      <SectionTitle icon={<Swords className="size-4" />}>
+        Enfrentamiento 1 vs 1
+      </SectionTitle>
+
+      <div className="mb-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-xs text-foreground">
+        <p className="font-semibold uppercase tracking-wide text-accent">
+          {format === 'sets' ? 'Sistema por Sets' : 'Sistema Acumulado'}
+        </p>
+        <p className="mt-1 text-muted-foreground text-pretty">
+          {format === 'sets'
+            ? `Hasta ${numEnds} sets de ${arrowsPerEnd} flechas. Gana el set: +2 pts; empate: +1 pt cada uno. Primero en llegar a 6 puntos de set gana. Empate 5-5 → Flecha de Oro (desempate).`
+            : `${numEnds} ${endLabel.toLowerCase()}s de ${arrowsPerEnd} flechas por suma total de puntos. Empate → flecha de desempate (shoot-off).`}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {duel.map((archer, i) => (
+          <div key={i} className="rounded-xl border border-border bg-card p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-full bg-accent font-display text-sm font-bold text-accent-foreground">
+                {i === 0 ? 'A' : 'B'}
+              </span>
+              <span className="font-display text-sm font-semibold uppercase tracking-wide">
+                Arquero {i === 0 ? 'A' : 'B'}
+              </span>
+            </div>
+            <ArcherFields
+              archer={archer}
+              onChange={(patch) => onUpdate(i as 0 | 1, patch)}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ArcherFields({
+  archer,
+  onChange,
+}: {
+  archer: ArcherDraft
+  onChange: (patch: Partial<ArcherDraft>) => void
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Field label="Nombre">
+        <input
+          value={archer.name}
+          onChange={(e) => onChange({ name: e.target.value })}
+          placeholder="Nombre del arquero"
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground outline-none placeholder:text-muted-foreground focus:border-primary-bright"
+        />
+      </Field>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Categoría">
+          <SelectBox
+            value={archer.category}
+            onChange={(v) => onChange({ category: v })}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </SelectBox>
+        </Field>
+
+        <Field label="Tipo de arco">
+          <SelectBox
+            value={archer.bowType}
+            onChange={(v) => onChange({ bowType: v as BowType })}
+          >
+            {BOW_TYPES.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </SelectBox>
+        </Field>
+      </div>
+    </div>
+  )
+}
+
+function ModeCard({
+  active,
+  onClick,
+  icon,
+  title,
+  desc,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  title: string
+  desc: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
+        active
+          ? 'border-primary-bright bg-primary text-primary-foreground'
+          : 'border-border bg-card text-foreground hover:border-primary-bright/60'
+      }`}
+    >
+      <span
+        className={`mt-0.5 shrink-0 ${
+          active ? 'text-primary-foreground' : 'text-primary-bright'
+        }`}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block font-display text-sm font-semibold uppercase tracking-wide">
+          {title}
+        </span>
+        <span
+          className={`mt-0.5 block text-xs ${
+            active ? 'text-primary-foreground/80' : 'text-muted-foreground'
           }`}
         >
-          {hasName ? (
-            <>
-              INICIAR SESIÓN <ArrowRight className="w-4 h-4" />
-            </>
-          ) : (
-            'Ingresa el nombre de cada arquero'
-          )}
-        </button>
-      </div>
-    </form>
+          {desc}
+        </span>
+      </span>
+    </button>
+  )
+}
+
+function SectionTitle({
+  icon,
+  children,
+  className = '',
+}: {
+  icon: React.ReactNode
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <h3
+      className={`mb-3 flex items-center gap-2 font-display text-sm font-semibold uppercase tracking-[0.15em] text-primary-bright ${className}`}
+    >
+      {icon}
+      {children}
+    </h3>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      {children}
+    </label>
+  )
+}
+
+function SelectBox({
+  value,
+  onChange,
+  children,
+}: {
+  value: string
+  onChange: (v: string) => void
+  children: React.ReactNode
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground outline-none focus:border-primary-bright"
+    >
+      {children}
+    </select>
   )
 }
