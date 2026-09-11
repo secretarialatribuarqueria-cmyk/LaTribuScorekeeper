@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Users, Swords, Target, Sun, Trees, Footprints, Plus, Trash2, ArrowRight } from 'lucide-react'
+import { Users, Swords, Target, Plus, Trash2, ArrowRight } from 'lucide-react'
 
 interface SetupFormProps {
   onStart: (data: any) => void
@@ -32,20 +32,26 @@ export function SetupForm({ onStart }: SetupFormProps) {
     setArchers(updated)
   }
 
-  const isValid = archers.every((a) => a.name.trim() !== '')
+  const hasName = archers.some((a) => a.name.trim() !== '')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isValid) return
-    onStart({ format, disciplineId, archers })
+    const validArchers = archers.filter((a) => a.name.trim() !== '')
+    if (validArchers.length === 0) return
+
+    onStart({
+      format,
+      disciplineId,
+      archers: validArchers,
+    })
   }
 
   return (
-    <form onSubmit={handleSubmit} className="min-h-screen bg-[#0a120c] text-white p-4 pb-28 max-w-3xl mx-auto flex flex-col gap-6 font-sans">
-      {/* Header Logo */}
+    <form onSubmit={handleSubmit} className="min-h-screen bg-[#0a120c] text-white p-4 pb-32 max-w-3xl mx-auto flex flex-col gap-6 font-sans">
+      {/* Logotipo y Título */}
       <div className="flex flex-col items-center gap-2 text-center pt-2">
-        <div className="w-16 h-16 bg-white rounded-xl p-2 flex items-center justify-center">
-          <img src="/logo.png" alt="La Tribu" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLElement).style.display = 'none' }} />
+        <div className="w-16 h-16 bg-white/10 rounded-xl p-2 flex items-center justify-center border border-emerald-900/50">
+          <Target className="w-10 h-10 text-emerald-400" />
         </div>
         <h1 className="text-xl font-black tracking-wider uppercase text-emerald-100">NUEVA SESIÓN</h1>
         <p className="text-xs text-emerald-400/70">Elige el formato de competición y registra a los arqueros.</p>
@@ -151,7 +157,7 @@ export function SetupForm({ onStart }: SetupFormProps) {
         </div>
       </div>
 
-      {/* Arqueros */}
+      {/* Lista de Arqueros */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
@@ -168,9 +174,9 @@ export function SetupForm({ onStart }: SetupFormProps) {
         </div>
 
         {archers.map((archer, idx) => (
-          <div key={idx} className="bg-[#111c14] border border-emerald-900/40 rounded-xl p-4 flex flex-col gap-3 relative">
+          <div key={idx} className="bg-[#111c14] border border-emerald-900/40 rounded-xl p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-amber-700 text-white font-bold text-xs flex items-center justify-center">
+              <span className="w-5 h-5 rounded-full bg-amber-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
                 {idx + 1}
               </span>
               <div className="flex-1">
@@ -225,27 +231,24 @@ export function SetupForm({ onStart }: SetupFormProps) {
         ))}
       </div>
 
-      {/* Botón inferior flotante/fijo sin tapar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#0a120c]/90 backdrop-blur-md border-t border-emerald-900/40 z-50">
-        <div className="max-w-3xl mx-auto">
-          <button
-            type="submit"
-            disabled={!isValid}
-            className={`w-full py-3.5 px-4 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${
-              isValid
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/50'
-                : 'bg-emerald-950/60 text-emerald-600/70 cursor-not-allowed border border-emerald-900/30'
-            }`}
-          >
-            {isValid ? (
-              <>
-                INICIAR SESIÓN <ArrowRight className="w-4 h-4" />
-              </>
-            ) : (
-              'Ingresa el nombre de cada arquero'
-            )}
-          </button>
-        </div>
+      {/* Botón inferior principal con clic directo */}
+      <div className="pt-4">
+        <button
+          type="submit"
+          className={`w-full py-4 px-4 rounded-xl font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${
+            hasName
+              ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
+              : 'bg-emerald-950/60 text-emerald-600/70 border border-emerald-900/30'
+          }`}
+        >
+          {hasName ? (
+            <>
+              INICIAR SESIÓN <ArrowRight className="w-4 h-4" />
+            </>
+          ) : (
+            'Ingresa el nombre de cada arquero'
+          )}
+        </button>
       </div>
     </form>
   )
