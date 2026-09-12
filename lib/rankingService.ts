@@ -11,7 +11,7 @@ export interface RankingEntry {
 }
 
 export const rankingService = {
-  saveScore: (entry: any) => {
+  saveScore: (entry: Partial<RankingEntry>) => {
     try {
       const currentRanking = rankingService.getRanking()
       
@@ -22,8 +22,14 @@ export const rankingService = {
       })
 
       const newEntry: RankingEntry = {
-        ...entry,
         id: String(Date.now()),
+        archerName: entry.archerName || 'Arquero',
+        category: entry.category || 'General',
+        bowType: entry.bowType || 'Raso',
+        score: Number(entry.score || 0),
+        xs: Number(entry.xs || 0),
+        tens: Number(entry.tens || 0),
+        disciplineId: entry.disciplineId || 'indoor',
         date: entry.date || formattedDate,
       }
 
@@ -40,7 +46,6 @@ export const rankingService = {
     try {
       if (typeof window === 'undefined') return []
 
-      // 1. Intentar recuperar claves antiguas si existen
       const oldKeys = ['ranking', 'rankings', 'latribu_rankings', 'scores']
       let recoveredEntries: RankingEntry[] = []
 
@@ -50,33 +55,29 @@ export const rankingService = {
           try {
             const parsed = JSON.parse(oldData)
             if (Array.isArray(parsed)) {
-              // Normalizar estructura antigua a la nueva
-              const formatted = parsed.map((item: any, idx: number) => ({
-                id: item.id || `old-${key}-${idx}-${Date.now()}`,
-                archerName: item.archerName || item.name || item.archer || 'Arquero',
-                category: item.category || 'General',
-                bowType: item.bowType || item.bowtype || 'Raso',
+              const formatted: RankingEntry[] = parsed.map((item: Record<string, unknown>, idx: number) => ({
+                id: String(item.id || `old-${key}-${idx}-${Date.now()}`),
+                archerName: String(item.archerName || item.name || item.archer || 'Arquero'),
+                category: String(item.category || 'General'),
+                bowType: String(item.bowType || item.bowtype || 'Raso'),
                 score: Number(item.score || item.total || 0),
                 xs: Number(item.xs || 0),
                 tens: Number(item.tens || 0),
-                disciplineId: item.disciplineId || 'indoor',
-                date: item.date || 'Anterior',
+                disciplineId: String(item.disciplineId || 'indoor'),
+                date: String(item.date || 'Anterior'),
               }))
               recoveredEntries = [...recoveredEntries, ...formatted]
             }
           } catch (e) {
             console.error(`Error migrando clave antigua ${key}:`, e)
           }
-          // Limpiar la clave antigua para no duplicar en el futuro
           localStorage.removeItem(key)
         }
       })
 
-      // 2. Obtener datos de la clave actual
       const saved = localStorage.getItem('latribu_ranking')
       const currentEntries: RankingEntry[] = saved ? JSON.parse(saved) : []
 
-      // 3. Fusionar evitando duplicados por ID
       if (recoveredEntries.length > 0) {
         const mergedMap = new Map<string, RankingEntry>()
         
