@@ -11,7 +11,7 @@ export interface RankingEntry {
 }
 
 export const rankingService = {
-  saveScore: (entry: Omit<RankingEntry, 'id'>) => {
+  saveScore: (entry: any) => {
     try {
       const currentRanking = rankingService.getRanking()
       
@@ -24,7 +24,7 @@ export const rankingService = {
       const newEntry: RankingEntry = {
         ...entry,
         id: String(Date.now()),
-        date: entry.date || formattedDate, // Usa la fecha provista o genera la fecha de hoy
+        date: entry.date || formattedDate,
       }
 
       const updatedRanking = [...currentRanking, newEntry]
