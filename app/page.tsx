@@ -9,19 +9,10 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<'setup' | 'scoring' | 'ranking'>('setup')
   const [tournament, setTournament] = useState<any>(null)
 
-  const handleStartSession = (sessionData: any) => {
-    // Garantiza que la sesión inicie sin importar si faltaba algún campo opcional
-    if (sessionData) {
-      setTournament({
-        ...sessionData,
-        date: sessionData.date || new Date().toLocaleDateString('es-ES', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-        }),
-      })
-      setCurrentView('scoring')
-    }
+  // Acepta datos sin importar la firma de setup-form
+  const handleStartSession = (data: any) => {
+    setTournament(data)
+    setCurrentView('scoring')
   }
 
   const handleReset = () => {
@@ -34,6 +25,7 @@ export default function Home() {
       {currentView === 'setup' && (
         <SetupForm
           onStart={handleStartSession}
+          onStartSession={handleStartSession}
           onViewRanking={() => setCurrentView('ranking')}
         />
       )}
