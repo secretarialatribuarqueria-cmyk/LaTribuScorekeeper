@@ -33,8 +33,9 @@ export default function Home() {
         return archer
       }
 
+      // Creamos la estructura de tandas como arreglos simples (compatibles con JSX)
       const emptyEnds = Array.from({ length: numEnds }, () =>
-        Array.from({ length: arrowsPerEnd }, () => ({ label: null }))
+        Array.from({ length: arrowsPerEnd }, () => null)
       )
 
       return {
@@ -73,7 +74,7 @@ export default function Home() {
     setCurrentView('scoring')
   }
 
-  const handleSetArrow = (data: { archerId: string; endIndex: number; arrowIndex: number; label: string | null }) => {
+  const handleSetArrow = (data: any) => {
     if (!tournament) return
 
     setTournament((prev: any) => {
@@ -82,7 +83,7 @@ export default function Home() {
         if (archer.id === data.archerId) {
           const newEnds = [...archer.ends]
           const newEnd = [...newEnds[data.endIndex]]
-          newEnd[data.arrowIndex] = { label: data.label }
+          newEnd[data.arrowIndex] = data.label
           newEnds[data.endIndex] = newEnd
           return { ...archer, ends: newEnds }
         }
