@@ -33,9 +33,9 @@ export default function Home() {
         return archer
       }
 
-      // Estructura de objetos con propiedad 'label' que espera el teclado
+      // Matriz simple de strings/nulls exacta para ScoringScreen
       const emptyEnds = Array.from({ length: numEnds }, () =>
-        Array.from({ length: arrowsPerEnd }, () => ({ label: null }))
+        Array.from({ length: arrowsPerEnd }, () => null)
       )
 
       return {
@@ -43,6 +43,7 @@ export default function Home() {
         name: archer.name || archer.archerName || `Arquero ${index + 1}`,
         category: archer.category || 'Senior',
         bowType: archer.bowType || archer.bowtype || 'Raso',
+        targetLetter: archer.targetLetter || String.fromCharCode(65 + index),
         ends: emptyEnds,
       }
     })
@@ -74,21 +75,21 @@ export default function Home() {
     setCurrentView('scoring')
   }
 
-  const handleSetArrow = (data: { archerId?: string; endIndex?: number; arrowIndex?: number; label?: string | null }) => {
+  const handleSetArrow = (
+    archerId: string,
+    endIndex: number,
+    arrowIndex: number,
+    label: string | null
+  ) => {
     if (!tournament) return
 
     setTournament((prev: any) => {
       if (!prev) return prev
       const updatedArchers = prev.archers.map((archer: any) => {
-        // Si viene archerId se filtra, de lo contrario se usa el arquero activo
-        const targetArcher = prev.archers[activeArcher]
-        if (archer.id === data.archerId || archer.id === targetArcher?.id) {
-          const newEnds = archer.ends.map((end: any[]) => [...end])
-          const targetEndIndex = data.endIndex ?? 0
-          const targetArrowIndex = data.arrowIndex ?? 0
-          
-          if (newEnds[targetEndIndex]) {
-            newEnds[targetEndIndex][targetArrowIndex] = { label: data.label ?? null }
+        if (archer.id === archerId) {
+          const newEnds = archer.ends.map((end: (string | null)[]) => [...end])
+          if (newEnds[endIndex]) {
+            newEnds[endIndex][arrowIndex] = label
           }
           return { ...archer, ends: newEnds }
         }
@@ -119,8 +120,6 @@ export default function Home() {
           activeArcher={activeArcher}
           onActiveArcherChange={setActiveArcher}
           setArrow={handleSetArrow}
-          onReset={handleReset}
-          onViewRanking={() => setCurrentView('ranking')}
         />
       )}
 
