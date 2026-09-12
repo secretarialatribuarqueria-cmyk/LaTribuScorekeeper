@@ -71,4 +71,4 @@ export function RankingTable({ onBack }: RankingTableProps) {
       </div>
     </div>
   )
-}
+} 
