@@ -4,13 +4,17 @@ import React, { useEffect, useState } from 'react'
 import { Trophy, Calendar } from 'lucide-react'
 import { rankingService, RankingEntry } from '@/lib/rankingService'
 
-export function RankingTable({ onBack }: { onBack?: () => void }) {
+interface RankingTableProps {
+  tournament?: any
+  onBack?: () => void
+}
+
+export function RankingTable({ onBack }: RankingTableProps) {
   const [rankings, setRankings] = useState<RankingEntry[]>([])
 
   useEffect(() => {
     const data = rankingService.getRanking()
-    // Ordenar de mayor a menor puntuación
-    const sorted = data.sort((a, b) => b.score - a.score)
+    const sorted = [...data].sort((a, b) => b.score - a.score)
     setRankings(sorted)
   }, [])
 
@@ -24,7 +28,7 @@ export function RankingTable({ onBack }: { onBack?: () => void }) {
         {onBack && (
           <button
             onClick={onBack}
-            className="text-xs bg-emerald-900/40 border border-emerald-700/50 px-3 py-1.5 rounded-lg text-emerald-300"
+            className="text-xs bg-emerald-900/40 border border-emerald-700/50 px-3 py-1.5 rounded-lg text-emerald-300 cursor-pointer"
           >
             Volver
           </button>
@@ -49,8 +53,8 @@ export function RankingTable({ onBack }: { onBack?: () => void }) {
                 <td className="p-3 font-semibold text-white">{item.archerName}</td>
                 <td className="p-3 text-zinc-400">{item.category} · {item.bowType}</td>
                 <td className="p-3 text-center text-zinc-400 flex items-center justify-center gap-1">
-                  <Calendar className="w-3 h-3 text-emerald-500" />
-                  {item.date || 'N/A'}
+                  <Calendar className="w-3.5 h-3.5 text-emerald-500" />
+                  {item.date || 'Sin fecha'}
                 </td>
                 <td className="p-3 text-right font-black text-emerald-300">{item.score} pts</td>
               </tr>
