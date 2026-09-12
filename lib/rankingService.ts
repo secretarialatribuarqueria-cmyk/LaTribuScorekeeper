@@ -1,4 +1,4 @@
-import { BowType } from './types'
+import type { BowType } from '@/lib/types'
 
 export interface RankingEntry {
   id: string
