@@ -1,13 +1,15 @@
+import { BowType } from './types'
+
 export interface RankingEntry {
   id: string
   archerName: string
   category: string
-  bowType: BowType
+  bowType: BowType | string
   score: number
   xs: number
   tens: number
   disciplineId: string
-  date: string // Campo de fecha agregado
+  date?: string
 }
 
 export const rankingService = {
@@ -15,7 +17,6 @@ export const rankingService = {
     try {
       const currentRanking = rankingService.getRanking()
       
-      // Captura la fecha en formato local (DD/MM/AAAA)
       const formattedDate = new Date().toLocaleDateString('es-ES', {
         day: '2-digit',
         month: '2-digit',
