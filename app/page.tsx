@@ -4,15 +4,21 @@ import React, { useState } from 'react'
 import { SetupForm } from '@/components/setup-form'
 import { ScoringScreen } from '@/components/scoring-screen'
 import { RankingTable } from '@/components/ranking-table'
+import { DISCIPLINES } from '@/lib/disciplines'
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<'setup' | 'scoring' | 'ranking'>('setup')
   const [tournament, setTournament] = useState<any>(null)
 
-  const handleStartPatrulla = (discipline: any, archers: any) => {
+  const handleStartPatrulla = (disciplineInput: any, archers: any) => {
+    // Si la disciplina llega como string ID, buscamos el objeto completo con sus 'ends'
+    const fullDiscipline = typeof disciplineInput === 'string'
+      ? DISCIPLINES.find((d) => d.id === disciplineInput) || DISCIPLINES[0]
+      : disciplineInput
+
     setTournament({
       mode: 'patrulla',
-      discipline,
+      discipline: fullDiscipline,
       archers,
       date: new Date().toLocaleDateString('es-ES', {
         day: '2-digit',
@@ -23,10 +29,14 @@ export default function Home() {
     setCurrentView('scoring')
   }
 
-  const handleStartMatch = (discipline: any, archers: any) => {
+  const handleStartMatch = (disciplineInput: any, archers: any) => {
+    const fullDiscipline = typeof disciplineInput === 'string'
+      ? DISCIPLINES.find((d) => d.id === disciplineInput) || DISCIPLINES[0]
+      : disciplineInput
+
     setTournament({
       mode: 'match',
-      discipline,
+      discipline: fullDiscipline,
       archers,
       date: new Date().toLocaleDateString('es-ES', {
         day: '2-digit',
