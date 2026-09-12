@@ -1,34 +1,34 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Trophy, Calendar } from 'lucide-react'
+import { Trophy, Calendar, Loader2 } from 'lucide-react'
 import { rankingService, RankingEntry } from '@/lib/rankingService'
 
 interface RankingTableProps {
-  tournament?: any
-  rankings?: any[]
+  rankings?: RankingEntry[]
   onBack?: () => void
 }
 
 export function RankingTable({ onBack, rankings: propsRankings }: RankingTableProps) {
   const [rankings, setRankings] = useState<RankingEntry[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
 
-  useEffect(() => {
-    // Si se pasan resultados directamente por props, usarlos prioritariamente
+  const fetchRankings = async () => {
+    setLoading(true)
     if (propsRankings && propsRankings.length > 0) {
       const sortedProps = [...propsRankings].sort((a, b) => b.score - a.score)
       setRankings(sortedProps)
+      setLoading(false)
       return
     }
 
-    // Si no, intentar leer de rankingService o localStorage
-    try {
-      const data = rankingService?.getRanking ? rankingService.getRanking() : []
-      const sorted = [...(data || [])].sort((a: any, b: any) => b.score - a.score)
-      setRankings(sorted)
-    } catch (e) {
-      console.error(e)
-    }
+    const data = await rankingService.getRanking()
+    setRankings(data)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchRankings()
   }, [propsRankings])
 
   return (
@@ -36,7 +36,7 @@ export function RankingTable({ onBack, rankings: propsRankings }: RankingTablePr
       <div className="flex items-center justify-between pb-4 mb-4 border-b border-emerald-900/50">
         <div className="flex items-center gap-2">
           <Trophy className="w-6 h-6 text-amber-400" />
-          <h1 className="text-lg font-black uppercase text-emerald-100">RANKING GENERAL</h1>
+          <h1 className="text-lg font-black uppercase text-emerald-100">RANKING GENERAL GLOBAL</h1>
         </div>
         {onBack && (
           <button
@@ -60,19 +60,30 @@ export function RankingTable({ onBack, rankings: propsRankings }: RankingTablePr
             </tr>
           </thead>
           <tbody className="divide-y divide-emerald-900/20">
-            {rankings.map((item: any, idx) => (
-              <tr key={item.id || idx} className="hover:bg-emerald-950/30">
-                <td className="p-3 font-bold text-amber-400">{idx + 1}</td>
-                <td className="p-3 font-semibold text-white">{item.archerName || item.name}</td>
-                <td className="p-3 text-zinc-400">{item.category} · {item.bowType}</td>
-                <td className="p-3 text-center text-zinc-400 flex items-center justify-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-500" />
-                  {item.date || 'Sin fecha'}
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="p-6 text-center text-emerald-400">
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Cargando ranking global...</span>
+                  </div>
                 </td>
-                <td className="p-3 text-right font-black text-emerald-300">{item.score} pts</td>
               </tr>
-            ))}
-            {rankings.length === 0 && (
+            ) : (
+              rankings.map((item, idx) => (
+                <tr key={item.id || idx} className="hover:bg-emerald-950/30">
+                  <td className="p-3 font-bold text-amber-400">{idx + 1}</td>
+                  <td className="p-3 font-semibold text-white">{item.archerName}</td>
+                  <td className="p-3 text-zinc-400">{item.category} · {item.bowType}</td>
+                  <td className="p-3 text-center text-zinc-400 flex items-center justify-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-500" />
+                    {item.date || 'Sin fecha'}
+                  </td>
+                  <td className="p-3 text-right font-black text-emerald-300">{item.score} pts</td>
+                </tr>
+              ))
+            )}
+            {!loading && rankings.length === 0 && (
               <tr>
                 <td colSpan={5} className="p-6 text-center text-zinc-500">
                   No hay registros en el ranking todavía.
