@@ -1,10 +1,8 @@
-import type { BowType } from '@/lib/types'
-
 export interface RankingEntry {
   id: string
   archerName: string
   category: string
-  bowType: BowType | string
+  bowType: string
   score: number
   xs: number
   tens: number
