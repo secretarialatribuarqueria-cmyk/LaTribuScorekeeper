@@ -7,7 +7,7 @@ import { MatchScreen } from '@/components/match-screen'
 import { ScoringScreen } from '@/components/scoring-screen'
 import { SetupForm } from '@/components/setup-form'
 import { SummaryView } from '@/components/summary-view'
-import { RankingTable } from '@/components/RankingTable'
+import { RankingTable } from '@/components/ranking-table'
 import { Button } from '@/components/ui/button'
 import { useTournament } from '@/lib/use-tournament'
 
