@@ -10,8 +10,18 @@ export default function Home() {
   const [tournament, setTournament] = useState<any>(null)
 
   const handleStartSession = (sessionData: any) => {
-    setTournament(sessionData)
-    setCurrentView('scoring')
+    // Garantiza que la sesión inicie sin importar si faltaba algún campo opcional
+    if (sessionData) {
+      setTournament({
+        ...sessionData,
+        date: sessionData.date || new Date().toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }),
+      })
+      setCurrentView('scoring')
+    }
   }
 
   const handleReset = () => {
