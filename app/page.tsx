@@ -5,6 +5,7 @@ import { SetupForm } from '@/components/setup-form'
 import { ScoringScreen } from '@/components/scoring-screen'
 import { RankingTable } from '@/components/ranking-table'
 import { DISCIPLINES } from '@/lib/disciplines'
+import { Trophy, Home as HomeIcon } from 'lucide-react'
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<'setup' | 'scoring' | 'ranking'>('setup')
@@ -33,7 +34,6 @@ export default function Home() {
         return archer
       }
 
-      // Matriz simple de strings/nulls exacta para ScoringScreen
       const emptyEnds = Array.from({ length: numEnds }, () =>
         Array.from({ length: arrowsPerEnd }, () => null)
       )
@@ -100,13 +100,15 @@ export default function Home() {
   }
 
   const handleReset = () => {
-    setTournament(null)
-    setActiveArcher(0)
-    setCurrentView('setup')
+    if (confirm('¿Seguro que deseas salir al inicio? Se perderá el torneo actual.')) {
+      setTournament(null)
+      setActiveArcher(0)
+      setCurrentView('setup')
+    }
   }
 
   return (
-    <main className="min-h-screen bg-[#0a120c] text-white">
+    <main className="min-h-screen bg-[#0a120c] text-white pb-16">
       {currentView === 'setup' && (
         <SetupForm
           onStartPatrulla={handleStartPatrulla}
@@ -127,6 +129,42 @@ export default function Home() {
         <RankingTable
           onBack={() => setCurrentView(tournament ? 'scoring' : 'setup')}
         />
+      )}
+
+      {/* Barra de Navegación Inferior cuando hay un torneo activo */}
+      {tournament && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border bg-[#0d160f]/95 p-2 backdrop-blur max-w-3xl mx-auto">
+          <button
+            type="button"
+            onClick={() => setCurrentView('scoring')}
+            className={`flex flex-col items-center gap-1 text-xs font-semibold ${
+              currentView === 'scoring' ? 'text-amber-500' : 'text-muted-foreground hover:text-white'
+            }`}
+          >
+            <span className="text-base">🎯</span>
+            <span>Anotación</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCurrentView('ranking')}
+            className={`flex flex-col items-center gap-1 text-xs font-semibold ${
+              currentView === 'ranking' ? 'text-amber-500' : 'text-muted-foreground hover:text-white'
+            }`}
+          >
+            <Trophy className="size-5" />
+            <span>Ranking</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleReset}
+            className="flex flex-col items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-destructive"
+          >
+            <HomeIcon className="size-5" />
+            <span>Inicio</span>
+          </button>
+        </div>
       )}
     </main>
   )
