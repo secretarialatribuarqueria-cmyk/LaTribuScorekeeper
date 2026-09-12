@@ -38,7 +38,7 @@ export const rankingService = {
 
   getRanking: (): RankingEntry[] => {
     try {
-      const saved = localStorage.getItem('latribu_ranking')
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('latribu_ranking') : null
       return saved ? JSON.parse(saved) : []
     } catch (e) {
       console.error('Error al obtener el ranking:', e)
