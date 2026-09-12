@@ -55,7 +55,7 @@ export const rankingService = {
           try {
             const parsed = JSON.parse(oldData)
             if (Array.isArray(parsed)) {
-              const formatted: RankingEntry[] = parsed.map((item: Record<string, unknown>, idx: number) => ({
+              const formatted: RankingEntry[] = parsed.map((item: Record<string, any>, idx: number) => ({
                 id: String(item.id || `old-${key}-${idx}-${Date.now()}`),
                 archerName: String(item.archerName || item.name || item.archer || 'Arquero'),
                 category: String(item.category || 'General'),
@@ -66,7 +66,7 @@ export const rankingService = {
                 disciplineId: String(item.disciplineId || 'indoor'),
                 date: String(item.date || 'Anterior'),
               }))
-              recoveredEntries = [...recoveredEntries, ...formatted]
+              recoveredEntries = recoveredEntries.concat(formatted)
             }
           } catch (e) {
             console.error(`Error migrando clave antigua ${key}:`, e)
@@ -80,8 +80,9 @@ export const rankingService = {
 
       if (recoveredEntries.length > 0) {
         const mergedMap = new Map<string, RankingEntry>()
-        
-        [...currentEntries, ...recoveredEntries].forEach((entry) => {
+        const allEntries = currentEntries.concat(recoveredEntries)
+
+        allEntries.forEach((entry) => {
           const uniqueKey = entry.id || `${entry.archerName}-${entry.score}-${entry.date}`
           if (!mergedMap.has(uniqueKey)) {
             mergedMap.set(uniqueKey, entry)
