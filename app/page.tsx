@@ -9,9 +9,31 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<'setup' | 'scoring' | 'ranking'>('setup')
   const [tournament, setTournament] = useState<any>(null)
 
-  // Acepta datos sin importar la firma de setup-form
-  const handleStartSession = (data: any) => {
-    setTournament(data)
+  const handleStartPatrulla = (discipline: any, archers: any) => {
+    setTournament({
+      mode: 'patrulla',
+      discipline,
+      archers,
+      date: new Date().toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }),
+    })
+    setCurrentView('scoring')
+  }
+
+  const handleStartMatch = (discipline: any, archers: any) => {
+    setTournament({
+      mode: 'match',
+      discipline,
+      archers,
+      date: new Date().toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }),
+    })
     setCurrentView('scoring')
   }
 
@@ -24,9 +46,8 @@ export default function Home() {
     <main className="min-h-screen bg-[#0a120c] text-white">
       {currentView === 'setup' && (
         <SetupForm
-          onStart={handleStartSession}
-          onStartSession={handleStartSession}
-          onViewRanking={() => setCurrentView('ranking')}
+          onStartPatrulla={handleStartPatrulla}
+          onStartMatch={handleStartMatch}
         />
       )}
 
