@@ -4,42 +4,50 @@ import React, { useState } from 'react'
 import { SetupForm } from '@/components/setup-form'
 import { ScoringScreen } from '@/components/scoring-screen'
 import { RankingTable } from '@/components/ranking-table'
+import { DISCIPLINES } from '@/lib/disciplines'
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<'setup' | 'scoring' | 'ranking'>('setup')
   const [tournament, setTournament] = useState<any>(null)
 
-  const handleStartPatrulla = (...args: any[]) => {
-    console.log('Datos recibidos en Patrulla:', args)
-    
-    // Si el primer parámetro ya trae archers o disciplina internamente
-    const firstArg = args[0] || {}
-    const secondArg = args[1] || []
+  const resolveDiscipline = (disciplineInput: any) => {
+    // Si ya viene como un objeto completo con propiedad ends, lo usamos
+    if (disciplineInput && typeof disciplineInput === 'object' && disciplineInput.ends) {
+      return disciplineInput
+    }
 
-    let disciplineObj = {
-      id: 'sala',
-      name: 'Sala / Indoor',
+    // Si viene como texto (ej: 'indoor', '3d', 'field'), buscamos en la lista o por clave
+    const id = typeof disciplineInput === 'string' ? disciplineInput.toLowerCase() : ''
+    
+    if (DISCIPLINES) {
+      // Si DISCIPLINES es una lista/arreglo
+      if (Array.isArray(DISCIPLINES)) {
+        const found = DISCIPLINES.find((d: any) => d.id === id || d.id === disciplineInput)
+        if (found) return found
+      } 
+      // Si DISCIPLINES es un objeto diccionario (ej: DISCIPLINES['indoor'])
+      else if (typeof DISCIPLINES === 'object' && DISCIPLINES[id]) {
+        return DISCIPLINES[id]
+      }
+    }
+
+    // Fallback completo en caso de no coincidir la clave
+    return {
+      id: id || 'indoor',
+      name: 'Indoor / Sala',
       ends: 10,
       arrowsPerEnd: 3,
       maxScore: 300,
     }
+  }
 
-    let archersList = []
-
-    if (typeof firstArg === 'object' && firstArg.ends) {
-      disciplineObj = firstArg
-      archersList = secondArg
-    } else if (typeof firstArg === 'object' && firstArg.discipline) {
-      disciplineObj = typeof firstArg.discipline === 'object' ? firstArg.discipline : disciplineObj
-      archersList = firstArg.archers || []
-    } else {
-      archersList = Array.isArray(secondArg) ? secondArg : (Array.isArray(firstArg) ? firstArg : [])
-    }
+  const handleStartPatrulla = (disciplineInput: any, archers: any) => {
+    const fullDiscipline = resolveDiscipline(disciplineInput)
 
     setTournament({
       mode: 'patrulla',
-      discipline: disciplineObj,
-      archers: archersList,
+      discipline: fullDiscipline,
+      archers: archers || [],
       date: new Date().toLocaleDateString('es-ES', {
         day: '2-digit',
         month: '2-digit',
@@ -49,34 +57,13 @@ export default function Home() {
     setCurrentView('scoring')
   }
 
-  const handleStartMatch = (...args: any[]) => {
-    const firstArg = args[0] || {}
-    const secondArg = args[1] || []
-
-    let disciplineObj = {
-      id: 'sala',
-      name: 'Sala / Indoor',
-      ends: 5,
-      arrowsPerEnd: 3,
-      maxScore: 150,
-    }
-
-    let archersList = []
-
-    if (typeof firstArg === 'object' && firstArg.ends) {
-      disciplineObj = firstArg
-      archersList = secondArg
-    } else if (typeof firstArg === 'object' && firstArg.discipline) {
-      disciplineObj = typeof firstArg.discipline === 'object' ? firstArg.discipline : disciplineObj
-      archersList = firstArg.archers || []
-    } else {
-      archersList = Array.isArray(secondArg) ? secondArg : (Array.isArray(firstArg) ? firstArg : [])
-    }
+  const handleStartMatch = (disciplineInput: any, archers: any) => {
+    const fullDiscipline = resolveDiscipline(disciplineInput)
 
     setTournament({
       mode: 'match',
-      discipline: disciplineObj,
-      archers: archersList,
+      discipline: fullDiscipline,
+      archers: archers || [],
       date: new Date().toLocaleDateString('es-ES', {
         day: '2-digit',
         month: '2-digit',
