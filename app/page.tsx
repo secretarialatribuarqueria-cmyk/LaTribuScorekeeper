@@ -13,6 +13,7 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<'setup' | 'scoring' | 'planilla' | 'ranking'>('setup')
   const [tournament, setTournament] = useState<any>(null)
   const [activeArcher, setActiveArcher] = useState<number>(0)
+  const [savedRankings, setSavedRankings] = useState<any[]>([])
 
   const prepareTournamentData = (mode: 'patrulla' | 'match', disciplineInput: any, archersInput: any[]) => {
     const disciplineId = typeof disciplineInput === 'string' 
@@ -104,32 +105,37 @@ export default function Home() {
   const handleSaveAndFinish = () => {
     if (!tournament) return
 
-    // Se registran todos los arqueros en el servicio de almacenamiento persistente
     tournament.archers.forEach((archer: any) => {
       let totalScore = 0
+      let totalXs = 0
+      let totalTens = 0
 
       archer.ends.forEach((end: (string | null)[]) => {
         totalScore += endTotal(tournament.discipline, end)
+        end.forEach((val) => {
+          if (val === 'X') totalXs++
+          if (val === '10' || val === 'X') totalTens++
+        })
       })
 
       const entry = {
-        id: `${archer.id}-${Date.now()}`,
         archerName: archer.name,
         category: archer.category,
         bowType: archer.bowType,
         score: totalScore,
+        xs: totalXs,
+        tens: totalTens,
+        disciplineId: tournament.disciplineId,
         date: tournament.date,
       }
 
-      if (typeof rankingService?.addEntry === 'function') {
-        rankingService.addEntry(entry)
-      } else if (typeof rankingService?.saveRanking === 'function') {
-        const current = rankingService.getRanking() || []
-        rankingService.saveRanking([...current, entry])
-      }
+      // Se usa la función exacta saveScore de rankingService
+      rankingService.saveScore(entry)
     })
 
-    alert('¡Tirada guardada en el Ranking con éxito!')
+    // Actualiza el estado local para forzar renderizado inmediato
+    setSavedRankings(rankingService.getRanking())
+    alert('¡Tirada finalizada y guardada en el Ranking con éxito!')
     setCurrentView('ranking')
   }
 
@@ -210,6 +216,7 @@ export default function Home() {
 
       {currentView === 'ranking' && (
         <RankingTable
+          rankings={savedRankings}
           onBack={() => setCurrentView(tournament ? 'scoring' : 'setup')}
         />
       )}
@@ -241,7 +248,10 @@ export default function Home() {
 
           <button
             type="button"
-            onClick={() => setCurrentView('ranking')}
+            onClick={() => {
+              setSavedRankings(rankingService.getRanking())
+              setCurrentView('ranking')
+            }}
             className={`flex flex-col items-center gap-1 text-xs font-semibold ${
               currentView === 'ranking' ? 'text-amber-500' : 'text-muted-foreground hover:text-white'
             }`}
