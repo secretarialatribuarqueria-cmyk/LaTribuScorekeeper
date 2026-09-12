@@ -6,17 +6,30 @@ import { rankingService, RankingEntry } from '@/lib/rankingService'
 
 interface RankingTableProps {
   tournament?: any
+  rankings?: any[]
   onBack?: () => void
 }
 
-export function RankingTable({ onBack }: RankingTableProps) {
+export function RankingTable({ onBack, rankings: propsRankings }: RankingTableProps) {
   const [rankings, setRankings] = useState<RankingEntry[]>([])
 
   useEffect(() => {
-    const data = rankingService.getRanking()
-    const sorted = [...data].sort((a, b) => b.score - a.score)
-    setRankings(sorted)
-  }, [])
+    // Si se pasan resultados directamente por props, usarlos prioritariamente
+    if (propsRankings && propsRankings.length > 0) {
+      const sortedProps = [...propsRankings].sort((a, b) => b.score - a.score)
+      setRankings(sortedProps)
+      return
+    }
+
+    // Si no, intentar leer de rankingService o localStorage
+    try {
+      const data = rankingService?.getRanking ? rankingService.getRanking() : []
+      const sorted = [...(data || [])].sort((a: any, b: any) => b.score - a.score)
+      setRankings(sorted)
+    } catch (e) {
+      console.error(e)
+    }
+  }, [propsRankings])
 
   return (
     <div className="min-h-screen bg-[#0a120c] text-white p-4 max-w-4xl mx-auto font-sans">
@@ -47,10 +60,10 @@ export function RankingTable({ onBack }: RankingTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-emerald-900/20">
-            {rankings.map((item, idx) => (
+            {rankings.map((item: any, idx) => (
               <tr key={item.id || idx} className="hover:bg-emerald-950/30">
                 <td className="p-3 font-bold text-amber-400">{idx + 1}</td>
-                <td className="p-3 font-semibold text-white">{item.archerName}</td>
+                <td className="p-3 font-semibold text-white">{item.archerName || item.name}</td>
                 <td className="p-3 text-zinc-400">{item.category} · {item.bowType}</td>
                 <td className="p-3 text-center text-zinc-400 flex items-center justify-center gap-1">
                   <Calendar className="w-3.5 h-3.5 text-emerald-500" />
@@ -71,4 +84,4 @@ export function RankingTable({ onBack }: RankingTableProps) {
       </div>
     </div>
   )
-} 
+}
