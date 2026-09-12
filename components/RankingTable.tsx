@@ -1,92 +1,70 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Trophy, Medal, Award } from 'lucide-react'
-import { getGlobalRanking } from '@/lib/rankingService'
+import React, { useEffect, useState } from 'react'
+import { Trophy, Calendar } from 'lucide-react'
+import { rankingService, RankingEntry } from '@/lib/rankingService'
 
-export function RankingTable() {
-  const [ranking, setRanking] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+export function RankingTable({ onBack }: { onBack?: () => void }) {
+  const [rankings, setRankings] = useState<RankingEntry[]>([])
 
   useEffect(() => {
-    async function loadRanking() {
-      const data = await getGlobalRanking()
-      setRanking(data)
-      setLoading(false)
-    }
-    loadRanking()
+    const data = rankingService.getRanking()
+    // Ordenar de mayor a menor puntuación
+    const sorted = data.sort((a, b) => b.score - a.score)
+    setRankings(sorted)
   }, [])
 
-  if (loading) {
-    return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-12 text-center text-sm text-muted-foreground">
-        Cargando posiciones del ranking...
-      </div>
-    )
-  }
-
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-4">
-      <div className="mb-6 text-center">
-        <h2 className="font-display text-2xl font-bold uppercase tracking-wide">
-          Ranking Global
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Los mejores puntajes registrados en la nube
-        </p>
+    <div className="min-h-screen bg-[#0a120c] text-white p-4 max-w-4xl mx-auto font-sans">
+      <div className="flex items-center justify-between pb-4 mb-4 border-b border-emerald-900/50">
+        <div className="flex items-center gap-2">
+          <Trophy className="w-6 h-6 text-amber-400" />
+          <h1 className="text-lg font-black uppercase text-emerald-100">RANKING GENERAL</h1>
+        </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-xs bg-emerald-900/40 border border-emerald-700/50 px-3 py-1.5 rounded-lg text-emerald-300"
+          >
+            Volver
+          </button>
+        )}
       </div>
 
-      {ranking.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
-          Aún no hay puntajes registrados. ¡Completa un torneo y guárdalo!
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                <th className="px-3 py-2.5 font-medium">#</th>
-                <th className="px-2 py-2.5 font-medium">Arquero</th>
-                <th className="px-2 py-2.5 font-medium">Modalidad</th>
-                <th className="px-2 py-2.5 text-right font-medium">Total</th>
-                <th className="px-3 py-2.5 text-right font-medium">10s / Xs</th>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-[#111c14] text-emerald-400 uppercase font-bold border-b border-emerald-900/40">
+            <tr>
+              <th className="p-3">#</th>
+              <th className="p-3">Arquero</th>
+              <th className="p-3">Categoría / Arco</th>
+              <th className="p-3 text-center">Fecha</th>
+              <th className="p-3 text-right">Puntaje</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-emerald-900/20">
+            {rankings.map((item, idx) => (
+              <tr key={item.id || idx} className="hover:bg-emerald-950/30">
+                <td className="p-3 font-bold text-amber-400">{idx + 1}</td>
+                <td className="p-3 font-semibold text-white">{item.archerName}</td>
+                <td className="p-3 text-zinc-400">{item.category} · {item.bowType}</td>
+                <td className="p-3 text-center text-zinc-400 flex items-center justify-center gap-1">
+                  <Calendar className="w-3 h-3 text-emerald-500" />
+                  {item.date || 'N/A'}
+                </td>
+                <td className="p-3 text-right font-black text-emerald-300">{item.score} pts</td>
               </tr>
-            </thead>
-            <tbody>
-              {ranking.map((item, i) => (
-                <tr key={item.id || i} className="border-b border-border/60 last:border-0 hover:bg-muted/50">
-                  <td className="px-3 py-3">
-                    {i === 0 ? (
-                      <Trophy className="size-4 text-amber-400" aria-label="1° Lugar" />
-                    ) : i === 1 ? (
-                      <Medal className="size-4 text-slate-300" aria-label="2° Lugar" />
-                    ) : i === 2 ? (
-                      <Award className="size-4 text-amber-700" aria-label="3° Lugar" />
-                    ) : (
-                      <span className="text-muted-foreground tabular-nums">{i + 1}</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-3">
-                    <span className="block font-medium">{item.archer_name}</span>
-                    <span className="block text-[11px] text-muted-foreground">
-                      {item.category ? `${item.category} · ` : ''}{item.bow_type}
-                    </span>
-                  </td>
-                  <td className="px-2 py-3 text-xs text-muted-foreground">
-                    {item.tournament_type}
-                  </td>
-                  <td className="px-2 py-3 text-right font-display text-base font-bold tabular-nums text-primary-bright">
-                    {item.total_score}
-                  </td>
-                  <td className="px-3 py-3 text-right text-xs tabular-nums text-muted-foreground">
-                    {item.tens_count} / {item.x_count}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+            {rankings.length === 0 && (
+              <tr>
+                <td colSpan={5} className="p-6 text-center text-zinc-500">
+                  No hay registros en el ranking todavía.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
