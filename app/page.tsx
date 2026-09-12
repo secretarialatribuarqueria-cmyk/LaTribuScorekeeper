@@ -33,9 +33,9 @@ export default function Home() {
         return archer
       }
 
-      // Creamos la estructura de tandas como arreglos simples (compatibles con JSX)
+      // Estructura de objetos con propiedad 'label' que espera el teclado
       const emptyEnds = Array.from({ length: numEnds }, () =>
-        Array.from({ length: arrowsPerEnd }, () => null)
+        Array.from({ length: arrowsPerEnd }, () => ({ label: null }))
       )
 
       return {
@@ -74,17 +74,22 @@ export default function Home() {
     setCurrentView('scoring')
   }
 
-  const handleSetArrow = (data: any) => {
+  const handleSetArrow = (data: { archerId?: string; endIndex?: number; arrowIndex?: number; label?: string | null }) => {
     if (!tournament) return
 
     setTournament((prev: any) => {
       if (!prev) return prev
       const updatedArchers = prev.archers.map((archer: any) => {
-        if (archer.id === data.archerId) {
-          const newEnds = [...archer.ends]
-          const newEnd = [...newEnds[data.endIndex]]
-          newEnd[data.arrowIndex] = data.label
-          newEnds[data.endIndex] = newEnd
+        // Si viene archerId se filtra, de lo contrario se usa el arquero activo
+        const targetArcher = prev.archers[activeArcher]
+        if (archer.id === data.archerId || archer.id === targetArcher?.id) {
+          const newEnds = archer.ends.map((end: any[]) => [...end])
+          const targetEndIndex = data.endIndex ?? 0
+          const targetArrowIndex = data.arrowIndex ?? 0
+          
+          if (newEnds[targetEndIndex]) {
+            newEnds[targetEndIndex][targetArrowIndex] = { label: data.label ?? null }
+          }
           return { ...archer, ends: newEnds }
         }
         return archer
