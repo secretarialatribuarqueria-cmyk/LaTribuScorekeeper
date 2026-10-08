@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { SetupForm } from '@/components/setup-form'
 import { ScoringScreen } from '@/components/scoring-screen'
 import { RankingTable } from '@/components/ranking-table'
@@ -14,6 +14,34 @@ export default function Home() {
   const [tournament, setTournament] = useState<any>(null)
   const [activeArcher, setActiveArcher] = useState<number>(0)
   const [savedRankings, setSavedRankings] = useState<any[]>([])
+
+  // --- 1. PERSISTENCIA: Cargar sesión previa desde localStorage al iniciar ---
+  useEffect(() => {
+    const saved = localStorage.getItem('tribuscore_active_tournament')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed && parsed.archers) {
+          const restore = window.confirm('Se encontró una tirada en curso sin finalizar. ¿Deseas continuar anotando?')
+          if (restore) {
+            setTournament(parsed)
+            setCurrentView('scoring')
+          } else {
+            localStorage.removeItem('tribuscore_active_tournament')
+          }
+        }
+      } catch (e) {
+        console.error('Error al restaurar sesión guardada', e)
+      }
+    }
+  }, [])
+
+  // --- 2. PERSISTENCIA: Guardar en localStorage ante cualquier cambio en la tirada ---
+  useEffect(() => {
+    if (tournament) {
+      localStorage.setItem('tribuscore_active_tournament', JSON.stringify(tournament))
+    }
+  }, [tournament])
 
   const prepareTournamentData = (mode: 'patrulla' | 'match', disciplineInput: any, archersInput: any[]) => {
     const disciplineId = typeof disciplineInput === 'string' 
@@ -102,8 +130,18 @@ export default function Home() {
     })
   }
 
+  // --- 3. GUARDADO PARCIAL: Guardar borrador sin salir ni borrar la sesión activa ---
+  const handleSavePartial = () => {
+    if (!tournament) return
+    localStorage.setItem('tribuscore_active_tournament', JSON.stringify(tournament))
+    alert('✓ Avance guardado en la memoria local.')
+  }
+
+  // --- 4. FINALIZAR DEFINTIVO: Guarda al Ranking y limpia el borrador del navegador ---
   const handleSaveAndFinish = () => {
     if (!tournament) return
+
+    if (!confirm('¿Deseas finalizar la tirada y enviar todos los puntajes al Ranking?')) return
 
     tournament.archers.forEach((archer: any) => {
       let totalScore = 0
@@ -129,18 +167,19 @@ export default function Home() {
         date: tournament.date,
       }
 
-      // Se usa la función exacta saveScore de rankingService
       rankingService.saveScore(entry)
     })
 
-    // Actualiza el estado local para forzar renderizado inmediato
+    // Al finalizar correctamente, limpiamos el respaldo en el navegador
+    localStorage.removeItem('tribuscore_active_tournament')
     setSavedRankings(rankingService.getRanking())
-    alert('¡Tirada finalizada y guardada en el Ranking con éxito!')
+    alert('¡Tirada finalizada y enviada al Ranking con éxito!')
     setCurrentView('ranking')
   }
 
   const handleReset = () => {
     if (confirm('¿Seguro que deseas salir al inicio? Se perderá el torneo no guardado.')) {
+      localStorage.removeItem('tribuscore_active_tournament')
       setTournament(null)
       setActiveArcher(0)
       setCurrentView('setup')
@@ -149,6 +188,23 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#0a120c] text-white pb-20">
+      {/* Botón rápido superior para ir al Ranking cuando estamos en la pantalla de Inicio */}
+      {currentView === 'setup' && (
+        <div className="max-w-3xl mx-auto px-4 pt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setSavedRankings(rankingService.getRanking())
+              setCurrentView('ranking')
+            }}
+            className="flex items-center gap-2 bg-[#122216] border border-amber-500/30 text-amber-400 hover:bg-[#182e1e] font-semibold text-xs py-2 px-3 rounded-lg transition-all"
+          >
+            <Trophy className="size-4" />
+            <span>Ver Ranking General</span>
+          </button>
+        </div>
+      )}
+
       {currentView === 'setup' && (
         <SetupForm
           onStartPatrulla={handleStartPatrulla}
@@ -175,7 +231,7 @@ export default function Home() {
               <div key={archer.id} className="mb-6 rounded-xl border border-border bg-card p-4">
                 <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
                   <h3 className="font-display text-lg font-bold text-amber-500">
-                    {archer.targetLetter ? `${archer.targetLetter} - ` : ''}{archer.name}
+                    {archer.targetLetter ? `${archer.targetLetter} · ` : ''}{archer.name}
                   </h3>
                   <span className="text-xs text-muted-foreground">{archer.bowType} · {archer.category}</span>
                 </div>
@@ -203,7 +259,7 @@ export default function Home() {
                             <td className="py-2 font-bold">{endPts}</td>
                             <td className="py-2 font-bold text-amber-500">{runningTotal}</td>
                           </tr>
-                        )
+                        );
                       })}
                     </tbody>
                   </table>
@@ -221,7 +277,7 @@ export default function Home() {
         />
       )}
 
-      {/* Barra de Navegación Inferior */}
+      {/* Barra de Navegación Inferior (Siempre visible cuando hay torneo activo) */}
       {tournament && (
         <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border bg-[#0d160f]/95 p-2 backdrop-blur max-w-3xl mx-auto">
           <button
@@ -262,11 +318,20 @@ export default function Home() {
 
           <button
             type="button"
-            onClick={handleSaveAndFinish}
+            onClick={handleSavePartial}
             className="flex flex-col items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300"
           >
             <Save className="size-5" />
-            <span>Guardar</span>
+            <span>Avance</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveAndFinish}
+            className="flex flex-col items-center gap-1 text-xs font-semibold text-amber-400 hover:text-amber-300"
+          >
+            <Save className="size-5" />
+            <span>Finalizar</span>
           </button>
 
           <button
