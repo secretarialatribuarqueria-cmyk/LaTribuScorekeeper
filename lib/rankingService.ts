@@ -13,6 +13,32 @@ export interface RankingEntry {
 }
 
 export const rankingService = {
+  // Sincronizar planilla/diana en tiempo real en Supabase (estilo Ianseo)
+  syncTargetScore: async (tournamentId: string, targetNumber: string, archersData: any[]) => {
+    try {
+      const { data, error } = await supabase
+        .from('target_scores')
+        .upsert(
+          {
+            tournament_id: tournamentId,
+            target_number: targetNumber,
+            ends_data: archersData,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'tournament_id,target_number' }
+        )
+
+      if (error) {
+        console.error('Error sincronizando diana en Supabase:', error.message)
+      }
+      return data
+    } catch (e) {
+      console.error('Error al sincronizar la diana:', e)
+      return null
+    }
+  },
+
+  // Guardar resultado final de un arquero
   saveScore: async (entry: Partial<RankingEntry>) => {
     try {
       const formattedDate = new Date().toLocaleDateString('es-ES', {
@@ -39,7 +65,10 @@ export const rankingService = {
         console.error('Error insertando en Supabase:', error.message)
         // Respaldo en localStorage si falla Supabase
         const current = rankingService.getLocalRanking()
-        localStorage.setItem('latribu_ranking', JSON.stringify([...current, { ...newEntry, id: String(Date.now()) }]))
+        localStorage.setItem(
+          'latribu_ranking',
+          JSON.stringify([...current, { ...newEntry, id: String(Date.now()) }])
+        )
       }
 
       return data
@@ -73,5 +102,5 @@ export const rankingService = {
     if (typeof window === 'undefined') return []
     const saved = localStorage.getItem('latribu_ranking')
     return saved ? JSON.parse(saved) : []
-  }
+  },
 }
