@@ -36,10 +36,21 @@ export default function Home() {
     }
   }, [])
 
-  // --- 2. PERSISTENCIA: Guardar en localStorage ante cualquier cambio en la tirada ---
+  // --- 2. PERSISTENCIA Y SINCRONIZACIÓN AUTOMÁTICA EN TIEMPO REAL ---
   useEffect(() => {
     if (tournament) {
+      // Respaldo local
       localStorage.setItem('tribuscore_active_tournament', JSON.stringify(tournament))
+
+      // Enviar actualización en vivo a Supabase
+      const tournamentId = tournament.tournamentId || 'torneo-demo'
+      const targetNumber = tournament.targetNumber || `Diana ${tournament.archers?.[0]?.targetLetter || '01'}`
+
+      rankingService.syncTargetScore(
+        tournamentId,
+        targetNumber,
+        tournament.archers
+      )
     }
   }, [tournament])
 
@@ -81,6 +92,8 @@ export default function Home() {
 
     return {
       mode,
+      tournamentId: `torneo-${Date.now()}`,
+      targetNumber: `Diana ${formattedArchers[0]?.targetLetter || '1'}`,
       disciplineId,
       discipline: config,
       archers: formattedArchers,
@@ -130,20 +143,30 @@ export default function Home() {
     })
   }
 
-  // --- 3. GUARDADO PARCIAL: Guardar borrador sin salir ni borrar la sesión activa ---
-  const handleSavePartial = () => {
+  // --- 3. GUARDADO PARCIAL: Notifica guardado manual y fuerza sync con Supabase ---
+  const handleSavePartial = async () => {
     if (!tournament) return
     localStorage.setItem('tribuscore_active_tournament', JSON.stringify(tournament))
-    alert('✓ Avance guardado en la memoria local.')
+
+    const tournamentId = tournament.tournamentId || 'torneo-demo'
+    const targetNumber = tournament.targetNumber || 'Diana 01'
+
+    await rankingService.syncTargetScore(
+      tournamentId,
+      targetNumber,
+      tournament.archers
+    )
+
+    alert('✓ Avance sincronizado en tiempo real y guardado localmente.')
   }
 
-  // --- 4. FINALIZAR DEFINTIVO: Guarda al Ranking y limpia el borrador del navegador ---
-  const handleSaveAndFinish = () => {
+  // --- 4. FINALIZAR DEFINITIVO: Envia a Supabase, actualiza Ranking y limpia local ---
+  const handleSaveAndFinish = async () => {
     if (!tournament) return
 
     if (!confirm('¿Deseas finalizar la tirada y enviar todos los puntajes al Ranking?')) return
 
-    tournament.archers.forEach((archer: any) => {
+    for (const archer of tournament.archers) {
       let totalScore = 0
       let totalXs = 0
       let totalTens = 0
@@ -167,12 +190,16 @@ export default function Home() {
         date: tournament.date,
       }
 
-      rankingService.saveScore(entry)
-    })
+      await rankingService.saveScore(entry)
+    }
 
-    // Al finalizar correctamente, limpiamos el respaldo en el navegador
+    // Limpiar respaldo en el navegador
     localStorage.removeItem('tribuscore_active_tournament')
-    setSavedRankings(rankingService.getRanking())
+
+    // Cargar rankings actualizados desde Supabase
+    const rankings = await rankingService.getRanking()
+    setSavedRankings(rankings)
+
     alert('¡Tirada finalizada y enviada al Ranking con éxito!')
     setCurrentView('ranking')
   }
@@ -186,6 +213,12 @@ export default function Home() {
     }
   }
 
+  const loadRankings = async () => {
+    const data = await rankingService.getRanking()
+    setSavedRankings(data)
+    setCurrentView('ranking')
+  }
+
   return (
     <main className="min-h-screen bg-[#0a120c] text-white pb-20">
       {/* Botón rápido superior para ir al Ranking cuando estamos en la pantalla de Inicio */}
@@ -193,10 +226,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto px-4 pt-4 flex justify-end">
           <button
             type="button"
-            onClick={() => {
-              setSavedRankings(rankingService.getRanking())
-              setCurrentView('ranking')
-            }}
+            onClick={loadRankings}
             className="flex items-center gap-2 bg-[#122216] border border-amber-500/30 text-amber-400 hover:bg-[#182e1e] font-semibold text-xs py-2 px-3 rounded-lg transition-all"
           >
             <Trophy className="size-4" />
@@ -304,10 +334,7 @@ export default function Home() {
 
           <button
             type="button"
-            onClick={() => {
-              setSavedRankings(rankingService.getRanking())
-              setCurrentView('ranking')
-            }}
+            onClick={loadRankings}
             className={`flex flex-col items-center gap-1 text-xs font-semibold ${
               currentView === 'ranking' ? 'text-amber-500' : 'text-muted-foreground hover:text-white'
             }`}
